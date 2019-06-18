@@ -1,0 +1,4 @@
+1. Write script to create all tables for the nba database
+2. Write triggers to calculate new data each time data is inserted to the play
+   by play table
+3. Write scripts to cast all the data to the types I want it to be in the tables from the pandas dataframe. Maybe create data dictionaries for each of the tables
