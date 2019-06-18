@@ -4,6 +4,7 @@ This script will setup tables on PostgreSQL database
 import argparse
 import logging
 import pandas as pd
+import numpy as np
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Float, Boolean, Date
@@ -83,7 +84,7 @@ def main():
         event_team = Column(String)
         event_type_de = Column(String)
         shot_type_de = Column(String)
-        shot_made = Column(Integer)
+        shot_made = Column(Boolean)
         is_block = Column(Boolean)
         shot_type = Column(String)
         seconds_elapsed = Column(Integer)
@@ -119,6 +120,37 @@ def main():
 
         __table_args__ = {'schema': 'nba'}
 
+    class PlayerByGameStats(Base):
+        '''
+        Class to create the playerbygamestats table
+        '''
+        __tablename__ = 'playerbygamestats'
+        key_col = Column(Integer, primary_key=True)
+        player_id = Column(Integer)
+        team_id = Column(Integer)
+        minutes = Column(Float)
+        min_string = Column(String)
+        fgm = Column(Integer)
+        fga = Column(Integer)
+        tpm = Column(Integer)
+        tpa = Column(Integer)
+        ftm = Column(Integer)
+        fta = Column(Integer)
+        oreb = Column(Integer)
+        dreb = Column(Integer)
+        reb = Column(Integer)
+        assist = Column(Integer)
+        turnover = Column(Integer)
+        steal = Column(Integer)
+        block = Column(Integer)
+        pf = Column(Integer)
+        points = Column(Integer)
+        plus_minus = Column(Integer)
+
+
+        __table_args__ = {'schema': 'nba'}
+
+
     Base.metadata.create_all(engine)
 
     # TODO: This needs to be removed once scripts are ready for production
@@ -126,7 +158,11 @@ def main():
     test['key_col'] = test['game_id'] + test['eventnum']
     test = test.astype({'is_d_rebound': bool, 'is_o_rebound': bool,
                         'is_turnover': bool, 'is_steal': bool,
-                        'is_putback': bool, 'is_block': bool, 'is_three': bool})
+                        'is_putback': bool, 'is_block': bool, 'is_three': bool,
+                        'shot_made': bool})
+    # will need this cleaning in all the subsequent writes to the database
+    test['points_made'] = np.where((test['shot_made'] == 0) &
+                                   (test['event_type_de'] == 'free-throw'), 0, test['points_made'])
     test.columns = list(map(str.lower, test.columns))
     test.to_sql('pbp', engine, schema='nba', if_exists='append', index=False)
 
