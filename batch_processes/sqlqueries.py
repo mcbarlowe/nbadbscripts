@@ -307,11 +307,11 @@ pbgs_calc = '''
         and plusminus.game_id = pbp.game_id
     left join (
         select
-            player_id
-            ,player_name
-            ,game_id
-            ,sum(toc) toc
-            ,to_char(sum(toc) * interval '1 second', 'MI:SS') toc_string
+            toc.player_id
+            ,toc.player_name
+            ,toc.game_id
+            ,sum(toc.toc) - coalesce(no_toc.toc, 0) toc
+            ,to_char((sum(toc.toc) - coalesce(no_toc.toc, 0)) * interval '1 second', 'MI:SS') toc_string
         from(
             select
                 home_player_1_id player_id
@@ -391,8 +391,32 @@ pbgs_calc = '''
                 ,game_id
                 ,sum(event_length) toc
             from nba.pbp
-            group by away_player_5_id, away_player_5, game_id) toc
-            group by player_id, player_name, game_id) time_on_court
+            group by away_player_5_id, away_player_5, game_id
+            union all
+            select
+                player1_id player_id
+                ,player1_name player_name
+                ,game_id
+                ,sum(event_length)
+            from nba.pbp
+            where event_type_de = 'substitution'
+            group by player1_id, player1_name, game_id) toc
+            left join (
+            select
+                    player2_id player_id
+                    ,player2_name player_name
+                    ,game_id
+                    ,sum(event_length) toc
+            from nba.pbp
+            where event_type_de = 'substitution'
+            group by player2_id, player2_name, game_id) no_toc
+            on no_toc.player_id = toc.player_id
+            where toc.game_id = 21801177
+            group by
+                toc.player_id,
+                toc.player_name,
+                toc.game_id,
+                no_toc.toc) time_on_court
             on time_on_court.player_id = pbp.player1_id
             and time_on_court.game_id = pbp.game_id
     where pbp.player1_id > 0 and pbp.player1_name != '' and pbp.game_id={game_id}
