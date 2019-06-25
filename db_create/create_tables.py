@@ -5,6 +5,7 @@ import argparse
 import logging
 import pandas as pd
 import numpy as np
+import sqlqueries
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Float, Boolean, Date
@@ -128,6 +129,7 @@ def main():
         '''
         __tablename__ = 'playerbygamestats'
         key_col = Column(String, primary_key=True, nullable=False)
+        season = Column(Integer)
         game_date = Column(Date)
         game_id = Column(Integer)
         player_id = Column(Integer)
@@ -155,28 +157,31 @@ def main():
     # TODO: This needs to be removed once scripts are ready for production
 
     Base.metadata.create_all(engine)
-    for x in range(21800031, 21801231):
-        print(x)
-        test = pd.read_csv(f'/Users/MattBarlowe/nba_data/{x}.csv')
-        test['key_col'] = (test['game_id'].astype(str) +
-                           test['eventnum'].astype(str) +
-                           test['game_date'].astype(str) +
-                           test['home_team_abbrev'] + test['away_team_abbrev'])
+    for year in ['16', '17', '18']:
+        for x in range(int(f'2{year}00001'), int(f'2{year}01231')):
+            print(x)
+            test = pd.read_csv(f'/Users/MattBarlowe/nba_data/{x}.csv')
+            test['key_col'] = (test['game_id'].astype(str) +
+                               test['eventnum'].astype(str) +
+                               test['game_date'].astype(str) +
+                               test['home_team_abbrev'] + test['away_team_abbrev'])
 
-        test = test.astype({'is_d_rebound': bool, 'is_o_rebound': bool,
-                            'is_turnover': bool, 'is_steal': bool,
-                            'is_putback': bool, 'is_block': bool,
-                            'is_three': bool, 'shot_made': bool,
-                            'home_player_1_id': int, 'home_player_2_id': int,
-                            'home_player_3_id': int, 'home_player_4_id': int,
-                            'home_player_5_id': int, 'away_player_2_id': int,
-                            'away_player_1_id': int, 'away_player_3_id': int,
-                            'away_player_4_id': int, 'away_player_5_id': int})
-        # will need this cleaning in all the subsequent writes to the database
-        test['points_made'] = np.where((test['shot_made'] == 0) &
-                                       (test['event_type_de'] == 'free-throw'), 0, test['points_made'])
-        test.columns = list(map(str.lower, test.columns))
-        test.to_sql('pbp', engine, schema='nba', if_exists='append', index=False)
+            test = test.astype({'is_d_rebound': bool, 'is_o_rebound': bool,
+                                'is_turnover': bool, 'is_steal': bool,
+                                'is_putback': bool, 'is_block': bool,
+                                'is_three': bool, 'shot_made': bool,
+                                'home_player_1_id': int, 'home_player_2_id': int,
+                                'home_player_3_id': int, 'home_player_4_id': int,
+                                'home_player_5_id': int, 'away_player_2_id': int,
+                                'away_player_1_id': int, 'away_player_3_id': int,
+                                'away_player_4_id': int, 'away_player_5_id': int})
+            # will need this cleaning in all the subsequent writes to the database
+            test['points_made'] = np.where((test['shot_made'] == 0) &
+                                          (test['event_type_de'] == 'free-throw'), 0, test['points_made'])
+            test.columns = list(map(str.lower, test.columns))
+            test.to_sql('pbp', engine, schema='nba', if_exists='append', index=False, method='multi')
+
+            engine.connect().execute(sqlqueries.pbgs_calc.format(game_id=test.game_id.unique()[0]))
 
 if __name__ == '__main__':
     main()
