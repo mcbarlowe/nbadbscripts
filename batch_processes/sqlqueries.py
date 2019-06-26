@@ -3,7 +3,7 @@ pbgs_calc = '''
     (key_col, season, game_date, game_id, player_id, player_name, team_abbrev, team_id,
      toc, toc_string, fgm, fga, tpm, tpa, ftm, fta, oreb, dreb, ast, tov, stl,
      blk, pf, points, plus_minus)
-    select
+         select
         cast(pbp.game_id as text) || cast(pbp.player1_id as text) key_col
         , pbp.season
         , pbp.game_date
@@ -116,80 +116,125 @@ pbgs_calc = '''
         where event_type_de != 'free-throw' and game_id={game_id}
         group by home_player_5_id, home_player_5, game_id
         union all
-        select
-            p1.home_player_1_id player_id
-            ,p1.home_player_1 player_name
-            ,pbp.game_id
-            ,coalesce(sum(case when pbp.event_team = pbp.home_team_abbrev then pbp.points_made end), 0) plus
-            ,coalesce(sum(case when pbp.event_team != pbp.home_team_abbrev then pbp.points_made end), 0) minus
-        from nba.pbp pbp
-        join nba.pbp p1
-            on p1.period = pbp.period
-            and p1.pctimestring = pbp.pctimestring
-		 	and p1.game_id = pbp.game_id
-            and p1.event_type_de = 'foul' and p1.foul_type != 'technical'
-        where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}
-        group by p1.home_player_1_id, p1.home_player_1, pbp.game_id
+		select
+			player_id
+			,player_name
+			,game_id
+			 ,coalesce(sum(case when event_team = home_team_abbrev then points_made end), 0) plus
+			 ,coalesce(sum(case when event_team != home_team_abbrev then points_made end), 0) minus
+		from
+			(select distinct
+					p1.home_player_1_id player_id
+					,p1.home_player_1 player_name
+					,pbp.event_team
+					, pbp.game_id
+					,pbp.home_team_abbrev
+					,pbp.de
+					,pbp.points_made
+				from nba.pbp pbp
+				join nba.pbp p1
+					on p1.period = pbp.period
+					and p1.pctimestring = pbp.pctimestring
+					and p1.event_type_de = 'foul'
+					and p1.game_id = pbp.game_id
+				where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}) foul
+				group by player_id, player_name, game_id
         union all
-        select
-            p1.home_player_2_id player_id
-            ,p1.home_player_2 player_name
-            ,pbp.game_id
-            ,coalesce(sum(case when pbp.event_team = pbp.home_team_abbrev then pbp.points_made end), 0) plus
-            ,coalesce(sum(case when pbp.event_team != pbp.home_team_abbrev then pbp.points_made end), 0) minus
-        from nba.pbp pbp
-        join nba.pbp p1
-            on p1.period = pbp.period
-            and p1.pctimestring = pbp.pctimestring
-		 	and p1.game_id = pbp.game_id
-            and p1.event_type_de = 'foul' and p1.foul_type != 'technical'
-        where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}
-        group by p1.home_player_2_id, p1.home_player_2, pbp.game_id
+		select
+			player_id
+			,player_name
+			,game_id
+			 ,coalesce(sum(case when event_team = home_team_abbrev then points_made end), 0) plus
+			 ,coalesce(sum(case when event_team != home_team_abbrev then points_made end), 0) minus
+		from
+			(select distinct
+					p1.home_player_2_id player_id
+					,p1.home_player_2 player_name
+					,pbp.event_team
+					, pbp.game_id
+					,pbp.home_team_abbrev
+					,pbp.de
+					,pbp.points_made
+				from nba.pbp pbp
+				join nba.pbp p1
+					on p1.period = pbp.period
+					and p1.pctimestring = pbp.pctimestring
+					and p1.event_type_de = 'foul'
+					and p1.game_id = pbp.game_id
+				where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}) foul
+				group by player_id, player_name, game_id
         union all
-        select
-            p1.home_player_3_id player_id
-            ,p1.home_player_3 player_name
-            ,pbp.game_id
-            ,coalesce(sum(case when pbp.event_team = pbp.home_team_abbrev then pbp.points_made end), 0) plus
-            ,coalesce(sum(case when pbp.event_team != pbp.home_team_abbrev then pbp.points_made end), 0) minus
-        from nba.pbp pbp
-        join nba.pbp p1
-            on p1.period = pbp.period
-            and p1.pctimestring = pbp.pctimestring
-		 	and p1.game_id = pbp.game_id
-            and p1.event_type_de = 'foul' and p1.foul_type != 'technical'
-        where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}
-        group by p1.home_player_3_id, p1.home_player_3, pbp.game_id
+			select
+				player_id
+				,player_name
+				,game_id
+				 ,coalesce(sum(case when event_team = home_team_abbrev then points_made end), 0) plus
+				 ,coalesce(sum(case when event_team != home_team_abbrev then points_made end), 0) minus
+			from
+				(select distinct
+						p1.home_player_3_id player_id
+						,p1.home_player_3 player_name
+						,pbp.event_team
+						, pbp.game_id
+						,pbp.home_team_abbrev
+						,pbp.de
+						,pbp.points_made
+					from nba.pbp pbp
+					join nba.pbp p1
+						on p1.period = pbp.period
+						and p1.pctimestring = pbp.pctimestring
+						and p1.event_type_de = 'foul'
+						and p1.game_id = pbp.game_id
+					where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}) foul
+					group by player_id, player_name, game_id
         union all
-        select
-            p1.home_player_4_id player_id
-            ,p1.home_player_4 player_name
-            , pbp.game_id
-            ,coalesce(sum(case when pbp.event_team = pbp.home_team_abbrev then pbp.points_made end), 0) plus
-            ,coalesce(sum(case when pbp.event_team != pbp.home_team_abbrev then pbp.points_made end), 0) minus
-        from nba.pbp pbp
-        join nba.pbp p1
-            on p1.period = pbp.period
-            and p1.pctimestring = pbp.pctimestring
-		 	and p1.game_id = pbp.game_id
-            and p1.event_type_de = 'foul' and p1.foul_type != 'technical'
-        where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}
-        group by p1.home_player_4_id, p1.home_player_4, pbp.game_id
+			select
+				player_id
+				,player_name
+				,game_id
+				 ,coalesce(sum(case when event_team = home_team_abbrev then points_made end), 0) plus
+				 ,coalesce(sum(case when event_team != home_team_abbrev then points_made end), 0) minus
+			from
+				(select distinct
+						p1.home_player_4_id player_id
+						,p1.home_player_4 player_name
+						,pbp.event_team
+						, pbp.game_id
+						,pbp.home_team_abbrev
+						,pbp.de
+						,pbp.points_made
+					from nba.pbp pbp
+					join nba.pbp p1
+						on p1.period = pbp.period
+						and p1.pctimestring = pbp.pctimestring
+						and p1.event_type_de = 'foul'
+						and p1.game_id = pbp.game_id
+					where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}) foul
+					group by player_id, player_name, game_id
         union all
-        select
-            p1.home_player_5_id player_id
-            ,p1.home_player_5 player_name
-            , pbp.game_id
-            ,coalesce(sum(case when pbp.event_team = pbp.home_team_abbrev then pbp.points_made end), 0) plus
-            ,coalesce(sum(case when pbp.event_team != pbp.home_team_abbrev then pbp.points_made end), 0) minus
-        from nba.pbp pbp
-        join nba.pbp p1
-            on p1.period = pbp.period
-            and p1.pctimestring = pbp.pctimestring
-		 	and p1.game_id = pbp.game_id
-            and p1.event_type_de = 'foul' and p1.foul_type != 'technical'
-        where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}
-        group by p1.home_player_5_id, p1.home_player_5, pbp.game_id
+			select
+				player_id
+				,player_name
+				,game_id
+				 ,coalesce(sum(case when event_team = home_team_abbrev then points_made end), 0) plus
+				 ,coalesce(sum(case when event_team != home_team_abbrev then points_made end), 0) minus
+			from
+				(select distinct
+						p1.home_player_5_id player_id
+						,p1.home_player_5 player_name
+						,pbp.event_team
+						, pbp.game_id
+						,pbp.home_team_abbrev
+						,pbp.de
+						,pbp.points_made
+					from nba.pbp pbp
+					join nba.pbp p1
+						on p1.period = pbp.period
+						and p1.pctimestring = pbp.pctimestring
+						and p1.event_type_de = 'foul'
+						and p1.game_id = pbp.game_id
+					where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}) foul
+					group by player_id, player_name, game_id
         union all
         select
             away_player_1_id player_id
@@ -241,80 +286,125 @@ pbgs_calc = '''
         where pbp.event_type_de != 'free-throw'and game_id={game_id}
         group by away_player_5_id, away_player_5, game_id
         union all
-        select
-            p1.away_player_1_id player_id
-            ,p1.away_player_1 player_name
-            , pbp.game_id
-            ,coalesce(sum(case when pbp.event_team = pbp.away_team_abbrev then pbp.points_made end), 0) plus
-            ,coalesce(sum(case when pbp.event_team != pbp.away_team_abbrev then pbp.points_made end), 0) minus
-        from nba.pbp pbp
-        join nba.pbp p1
-            on p1.period = pbp.period
-            and p1.pctimestring = pbp.pctimestring
-            and p1.event_type_de = 'foul' and p1.foul_type != 'technical'
-		 	and p1.game_id = pbp.game_id
-        where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}
-        group by p1.away_player_1_id, p1.away_player_1, pbp.game_id
+		select
+			player_id
+			,player_name
+			,game_id
+			 ,coalesce(sum(case when event_team = away_team_abbrev then points_made end), 0) plus
+			 ,coalesce(sum(case when event_team != away_team_abbrev then points_made end), 0) minus
+		from
+			(select distinct
+					p1.away_player_1_id player_id
+					,p1.away_player_1 player_name
+					,pbp.event_team
+					, pbp.game_id
+					,pbp.away_team_abbrev
+					,pbp.de
+					,pbp.points_made
+				from nba.pbp pbp
+				join nba.pbp p1
+					on p1.period = pbp.period
+					and p1.pctimestring = pbp.pctimestring
+					and p1.event_type_de = 'foul'
+					and p1.game_id = pbp.game_id
+				where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}) foul
+				group by player_id, player_name, game_id
         union all
-        select
-            p1.away_player_2_id player_id
-            ,p1.away_player_2 player_name
-            , pbp.game_id
-            ,coalesce(sum(case when pbp.event_team = pbp.away_team_abbrev then pbp.points_made end), 0) plus
-            ,coalesce(sum(case when pbp.event_team != pbp.away_team_abbrev then pbp.points_made end), 0) minus
-        from nba.pbp pbp
-        join nba.pbp p1
-            on p1.period = pbp.period
-            and p1.pctimestring = pbp.pctimestring
-            and p1.event_type_de = 'foul' and p1.foul_type != 'technical'
-		 	and p1.game_id = pbp.game_id
-        where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}
-        group by p1.away_player_2_id, p1.away_player_2, pbp.game_id
+		select
+			player_id
+			,player_name
+			,game_id
+			 ,coalesce(sum(case when event_team = away_team_abbrev then points_made end), 0) plus
+			 ,coalesce(sum(case when event_team != away_team_abbrev then points_made end), 0) minus
+		from
+			(select distinct
+					p1.away_player_2_id player_id
+					,p1.away_player_2 player_name
+					,pbp.event_team
+					, pbp.game_id
+					,pbp.away_team_abbrev
+					,pbp.de
+					,pbp.points_made
+				from nba.pbp pbp
+				join nba.pbp p1
+					on p1.period = pbp.period
+					and p1.pctimestring = pbp.pctimestring
+					and p1.event_type_de = 'foul'
+					and p1.game_id = pbp.game_id
+				where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}) foul
+				group by player_id, player_name, game_id
         union all
-        select
-            p1.away_player_3_id player_id
-            ,p1.away_player_3 player_name
-            , pbp.game_id
-            ,coalesce(sum(case when pbp.event_team = pbp.away_team_abbrev then pbp.points_made end), 0) plus
-            ,coalesce(sum(case when pbp.event_team != pbp.away_team_abbrev then pbp.points_made end), 0) minus
-        from nba.pbp pbp
-        join nba.pbp p1
-            on p1.period = pbp.period
-            and p1.pctimestring = pbp.pctimestring
-            and p1.event_type_de = 'foul' and p1.foul_type != 'technical'
-		 	and p1.game_id = pbp.game_id
-        where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}
-        group by p1.away_player_3_id, p1.away_player_3, pbp.game_id
+		select
+			player_id
+			,player_name
+			,game_id
+			 ,coalesce(sum(case when event_team = away_team_abbrev then points_made end), 0) plus
+			 ,coalesce(sum(case when event_team != away_team_abbrev then points_made end), 0) minus
+		from
+			(select distinct
+					p1.away_player_3_id player_id
+					,p1.away_player_3 player_name
+					,pbp.event_team
+					, pbp.game_id
+					,pbp.away_team_abbrev
+					,pbp.de
+					,pbp.points_made
+				from nba.pbp pbp
+				join nba.pbp p1
+					on p1.period = pbp.period
+					and p1.pctimestring = pbp.pctimestring
+					and p1.event_type_de = 'foul'
+					and p1.game_id = pbp.game_id
+				where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}) foul
+				group by player_id, player_name, game_id
         union all
-        select
-            p1.away_player_4_id player_id
-            ,p1.away_player_4 player_name
-            , pbp.game_id
-            ,coalesce(sum(case when pbp.event_team = pbp.away_team_abbrev then pbp.points_made end), 0) plus
-            ,coalesce(sum(case when pbp.event_team != pbp.away_team_abbrev then pbp.points_made end), 0) minus
-        from nba.pbp pbp
-        join nba.pbp p1
-            on p1.period = pbp.period
-            and p1.pctimestring = pbp.pctimestring
-            and p1.event_type_de = 'foul' and p1.foul_type != 'technical'
-		 	and p1.game_id = pbp.game_id
-        where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}
-        group by p1.away_player_4_id, p1.away_player_4, pbp.game_id
+		select
+			player_id
+			,player_name
+			,game_id
+			 ,coalesce(sum(case when event_team = away_team_abbrev then points_made end), 0) plus
+			 ,coalesce(sum(case when event_team != away_team_abbrev then points_made end), 0) minus
+		from
+			(select distinct
+					p1.away_player_4_id player_id
+					,p1.away_player_4 player_name
+					,pbp.event_team
+					, pbp.game_id
+					,pbp.away_team_abbrev
+					,pbp.de
+					,pbp.points_made
+				from nba.pbp pbp
+				join nba.pbp p1
+					on p1.period = pbp.period
+					and p1.pctimestring = pbp.pctimestring
+					and p1.event_type_de = 'foul'
+					and p1.game_id = pbp.game_id
+				where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}) foul
+				group by player_id, player_name, game_id
         union all
-        select
-            p1.away_player_5_id player_id
-            ,p1.away_player_5 player_name
-            , pbp.game_id
-            ,coalesce(sum(case when pbp.event_team = pbp.away_team_abbrev then pbp.points_made end), 0) plus
-            ,coalesce(sum(case when pbp.event_team != pbp.away_team_abbrev then pbp.points_made end), 0) minus
-        from nba.pbp pbp
-        join nba.pbp p1
-            on p1.period = pbp.period
-            and p1.pctimestring = pbp.pctimestring
-            and p1.event_type_de = 'foul' and p1.foul_type != 'technical'
-		 	and p1.game_id = pbp.game_id
-        where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}
-        group by p1.away_player_5_id, p1.away_player_5, pbp.game_id) pm
+		select
+			player_id
+			,player_name
+			,game_id
+			 ,coalesce(sum(case when event_team = away_team_abbrev then points_made end), 0) plus
+			 ,coalesce(sum(case when event_team != away_team_abbrev then points_made end), 0) minus
+		from
+			(select distinct
+					p1.away_player_5_id player_id
+					,p1.away_player_5 player_name
+					,pbp.event_team
+					, pbp.game_id
+					,pbp.away_team_abbrev
+					,pbp.de
+					,pbp.points_made
+				from nba.pbp pbp
+				join nba.pbp p1
+					on p1.period = pbp.period
+					and p1.pctimestring = pbp.pctimestring
+					and p1.event_type_de = 'foul'
+					and p1.game_id = pbp.game_id
+				where pbp.event_type_de = 'free-throw' and pbp.game_id={game_id}) foul
+				group by player_id, player_name, game_id) pm
         group by player_id, player_name, game_id
         ) plusminus
         on plusminus.player_id = pbp.player1_id
@@ -458,6 +548,4 @@ pbgs_calc = '''
             , time_on_court.toc
             , pbp.season
             , time_on_court.toc_string;
-
-
     '''
