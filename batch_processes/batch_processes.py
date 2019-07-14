@@ -29,7 +29,6 @@ def get_game_ids(api):
     game_ids = [game[2][2:] for game in games]
     return game_ids
 
-
 def main():
     '''
     Main function to run to scrape games daily
