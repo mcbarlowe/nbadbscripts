@@ -28,7 +28,17 @@ def get_game_ids(api):
     games = scoreboard['resultSets'][0]['rowSet']
     game_ids = [game[2][2:] for game in games]
     return game_ids
+def calc_team_stats(pbp_df):
+    '''
+    function to calculate team stats for each game from the play by play
 
+    Inputs:
+    pbp_df    - scraped play by play dataframe
+
+    Outputs:
+    team_df   - dataframe containing stats for both teams in the game
+    '''
+    pass
 def main():
     '''
     Main function to run to scrape games daily
@@ -51,6 +61,7 @@ def main():
     if games == []:
         logging.info("No games on %s", date)
         return
+    # creates a list 0f play by play dataframes to process
     games_df_list = [ns.scrape_game([game]) for game in games]
     for game_df in games_df_list:
         logging.info("Inserting %s into nba.pbp",
@@ -71,11 +82,23 @@ def main():
                                   'away_player_4_id': int, 'away_player_5_id': int})
 
         game_df.to_sql('pbp', engine, schema='nba',
-                       if_exists='append', index=False)
+                       if_exists='append', index=False, method='multi')
 
+        # calculating player stats here
+        # TODO rewrite this sql query i use for this into a python funciton
+        # TODO to make debuggin easier in the future 9-2-2019
         logging.info("Inserting boxscore for %s into nba.playerbygamestats",
                      game_df.game_id.unique()[0])
 
+        # calculating team stats
+        # TODO write python function to parse team stats from pbp or could just
+        # TODO roll it up from playerbygamestats not sure
+        team_df = calc_team_stats(game_df)
+        team_df.to_sql('teambygamestats', engine, schema='nba',
+                       if_exists='append', index= False, method='multi')
+
+        # TODO Calculate per possesion stats and RAPM plus any other advanced
+        # TODO stats I happen to find for teams and players
         engine.connect().execute(sqlqueries.pbgs_calc.format(game_id=game_df.game_id.unique()[0]))
 
 if __name__ == '__main__':
