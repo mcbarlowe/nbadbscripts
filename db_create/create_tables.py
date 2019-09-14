@@ -3,14 +3,10 @@ This script will setup tables on PostgreSQL database
 '''
 import argparse
 import logging
-import pandas as pd
-import numpy as np
-import sqlqueries
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Float, Boolean, Date
+from sqlalchemy import Column, Integer, String, Boolean, Date
 
-# pylint: disable=too-many-statements
 def main():
     '''
     Function to create all tables on the database
@@ -29,8 +25,6 @@ def main():
 
     Base = declarative_base()
 
-# pylint: disable=too-few-public-methods
-# pylint: disable=unused-variable
     class Pbp(Base):
         '''
         Class to create the play by play table
@@ -169,6 +163,9 @@ def main():
         team_id = Column(Integer)
         toc = Column(Integer)
         toc_string = Column(String)
+        points_for = Column(Integer)
+        points_against = Column(Integer)
+        is_win = Column(Integer)
         fgm = Column(Integer)
         fga = Column(Integer)
         tpm = Column(Integer)
@@ -181,11 +178,12 @@ def main():
         tov = Column(Integer)
         stl = Column(Integer)
         blk = Column(Integer)
+        shots_blocked = Column(Integer)
         pf = Column(Integer)
+        pf_drawn = Column(Integer)
         points = Column(Integer)
         plus_minus = Column(Integer)
-        home_road = Column(String)
-        win = Column(Integer)
+        is_home = Column(Integer)
         __table_args__ = {'schema': 'nba'}
 
     Base.metadata.create_all(engine)
