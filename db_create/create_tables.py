@@ -186,6 +186,61 @@ def main():
         is_home = Column(Integer)
         __table_args__ = {'schema': 'nba'}
 
+    class team_details(Base):
+        '''
+        Class to create table for team details
+        '''
+        __tablename__ = 'team_details'
+        team_id = Column(Integer, primary_key=True, nullable=False)
+        abbreviation = Column(String)
+        nickname = Column(String)
+        yearfounded = Column(Integer)
+        city = Column(String)
+        arena = Column(String)
+        arena_capacity = Column(Integer)
+        owner = Column(String)
+        generalmanager = Column(String)
+        headcoach = Column(String)
+        dleagueaffiliation = Column(String)
+        __table_args__ = {'schema': 'nba'}
+
+    class player_details(Base):
+        '''
+        Class to build table with player info
+        '''
+        __tablename__ = 'player_details'
+        player_id = Column(Integer, primary_key=True, nullable=False)
+        first_name = Column(String)
+        last_name = Column(String)
+        display_first_last = Column(String)
+        display_last_comma_first = Column(String)
+        display_fi_last = Column(String)
+        birthdate = Column(Date)
+        school = Column(String)
+        country = Column(String)
+        last_affiliation = Column(String)
+        height = Column(String)
+        weight = Column(String)
+        season_experience = Column(Integer)
+        jersey_number = Column(Integer)
+        position = Column(String)
+        rosterstatus = Column(String)
+        team_id = Column(Integer)
+        team_name = Column(String)
+        team_abbreviation = Column(String)
+        team_code = Column(String)
+        team_city = Column(String)
+        playercode = Column(String)
+        from_year = Column(Integer)
+        to_year = Column(Integer)
+        dleague_flag = Column(String)
+        nba_flag = Column(String)
+        games_played_flag = Column(String)
+        draft_year = Column(Integer)
+        draft_round = Column(Integer)
+        draft_number = Column(Integer)
+        __table_args__ = {'schema': 'nba'}
+
     Base.metadata.create_all(engine)
 
 if __name__ == '__main__':
