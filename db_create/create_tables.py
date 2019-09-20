@@ -241,6 +241,31 @@ def main():
         draft_number = Column(Integer)
         __table_args__ = {'schema': 'nba'}
 
+    class player_possessions(Base):
+        '''
+        creates table for player possesions totals
+        '''
+        __tablename__ = 'player_possessions'
+        key_col = Column(String, primary_key=True, nullable=False)
+        player_id = Column(Integer)
+        player_name = Column(String)
+        game_id = Column(Integer)
+        team_id = Column(Integer)
+        possessions = Column(Integer)
+        __table_args__ = {'schema': 'nba'}
+
+    class team_possessions(Base):
+        '''
+        creates table for player possesions totals
+        '''
+        __tablename__ = 'player_possessions'
+        key_col = Column(String, primary_key=True, nullable=False)
+        team_id = Column(Integer)
+        game_id = Column(Integer)
+        team_abbrev = Column(String)
+        possessions = Column(Integer)
+        __table_args__ = {'schema': 'nba'}
+
     Base.metadata.create_all(engine)
 
 if __name__ == '__main__':
