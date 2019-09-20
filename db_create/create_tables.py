@@ -222,7 +222,7 @@ def main():
         height = Column(String)
         weight = Column(String)
         season_experience = Column(Integer)
-        jersey_number = Column(Integer)
+        jersey_number = Column(String)
         position = Column(String)
         rosterstatus = Column(String)
         team_id = Column(Integer)
@@ -236,9 +236,9 @@ def main():
         dleague_flag = Column(String)
         nba_flag = Column(String)
         games_played_flag = Column(String)
-        draft_year = Column(Integer)
-        draft_round = Column(Integer)
-        draft_number = Column(Integer)
+        draft_year = Column(String)
+        draft_round = Column(String)
+        draft_number = Column(String)
         __table_args__ = {'schema': 'nba'}
 
     Base.metadata.create_all(engine)
