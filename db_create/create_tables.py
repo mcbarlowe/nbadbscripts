@@ -5,7 +5,7 @@ import argparse
 import logging
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Boolean, Date
+from sqlalchemy import Column, Integer, String, Boolean, Date, Numeric
 
 def main():
     '''
@@ -256,15 +256,59 @@ def main():
 
     class team_possessions(Base):
         '''
-        creates table for player possesions totals
+        creates table for team possesions totals
         '''
-        __tablename__ = 'player_possessions'
+        __tablename__ = 'team_possessions'
         key_col = Column(String, primary_key=True, nullable=False)
         team_id = Column(Integer)
         game_id = Column(Integer)
         team_abbrev = Column(String)
         possessions = Column(Integer)
         __table_args__ = {'schema': 'nba'}
+
+    class player_advanced(Base):
+        '''
+        creates table for player advanced stats
+        '''
+        __tablename__ = 'player_advanced_stats'
+        __table_args__ = {'schema': 'nba'}
+        key_col = Column(String, primary_key=True, nullable=False)
+        player_id = Column(Integer)
+        season = Column(Integer)
+        efg_percentage = Column(Numeric)
+        true_shooting_percentage = Column(Numeric)
+        oreb_percentage = Column(Numeric)
+        dreb_percentage = Column(Numeric)
+        treb_percentage = Column(Numeric)
+        ast_percentage = Column(Numeric)
+        stl_percentage = Column(Numeric)
+        blk_percentage = Column(Numeric)
+        tov_percentage = Column(Numeric)
+        usg_percentage = Column(Numeric)
+        off_rating = Column(Numeric)
+        def_rating = Column(Numeric)
+
+    class team_advanced(Base):
+        '''
+        creates table for team advanced stats
+        '''
+        __tablename__ = 'team_advanced_stats'
+        __table_args__ = {'schema': 'nba'}
+        key_col = Column(String, primary_key=True, nullable=False)
+        team_id = Column(Integer)
+        team_abbrev = Column(String)
+        season = Column(Integer)
+        efg_percentage = Column(Numeric)
+        tov_percentage = Column(Numeric)
+        oreb_percentage = Column(Numeric)
+        ft_per_fga = Column(Numeric)
+        opp_efg_percentage = Column(Numeric)
+        opp_tov_percentage = Column(Numeric)
+        dreb_percentage = Column(Numeric)
+        opp_ft_per_fga = Column(Numeric)
+        off_rating = Column(Numeric)
+        def_rating = Column(Numeric)
+
 
     Base.metadata.create_all(engine)
 

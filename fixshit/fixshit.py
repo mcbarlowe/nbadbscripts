@@ -55,7 +55,7 @@ def calc_possesions(game_df, engine):
     player5 = game_df[['home_player_5', 'home_player_5_id', 'home_possession', 'game_id', 'home_team_id']]\
               .rename(columns={'home_player_5': 'player_name', 'home_player_5_id': 'player_id'})
     home_possession_df = pd.concat([player1, player2, player3, player4, player5])
-    home_possession_df = home_possession_df.groupby(['player_id', 'player_name', 'game_id', 'home_team_id'])['home_possession'].sum().reset_index().sort_values('home_possession')
+    home_possession_df = home_possession_df.groupby(['player_id', 'player_name', 'game_id', 'home_team_id'])['home_possession'].sum().reset_index()
     player1 = game_df[['away_player_1', 'away_player_1_id', 'away_possession', 'game_id', 'away_team_id']]\
               .rename(columns={'away_player_1': 'player_name', 'away_player_1_id': 'player_id'})
     player2 = game_df[['away_player_2', 'away_player_2_id', 'away_possession', 'game_id', 'away_team_id']]\
@@ -67,7 +67,7 @@ def calc_possesions(game_df, engine):
     player5 = game_df[['away_player_5', 'away_player_5_id', 'away_possession', 'game_id', 'away_team_id']]\
               .rename(columns={'away_player_5': 'player_name', 'away_player_5_id': 'player_id'})
     away_possession_df = pd.concat([player1, player2, player3, player4, player5])
-    away_possession_df.groupby(['player_id', 'player_name', 'game_id', 'away_team_id'])['away_possession'].sum().reset_index().sort_values('away_possession')
+    away_possession_df = away_possession_df.groupby(['player_id', 'player_name', 'game_id', 'away_team_id'])['away_possession'].sum().reset_index()
 
     home_possession_df = home_possession_df.rename(columns={'home_team_id': 'team_id',
                                                           'home_possession': 'possessions'})
@@ -81,6 +81,12 @@ def calc_possesions(game_df, engine):
             game_df.away_team_abbrev.unique()[0], game_df['away_possession'].sum()]
     team_possession_df = pd.DataFrame([row1,row2], columns=['team_id', 'game_id', 'team_abbrev', 'possessions'])
 
+
+    possession_df['key_col'] = possession_df['player_id'].astype(str) + possession_df['game_id'].astype(str)
+    team_possession_df['key_col'] = team_possession_df['team_id'].astype(str) + team_possession_df['game_id'].astype(str)
+
+    print(possession_df)
+    print(team_possession_df)
     possession_df.to_sql('player_possessions', engine, schema='nba',
                          if_exists='append', index=False, method='multi')
 
@@ -182,7 +188,7 @@ def calc_team_stats(game_df, sqlalchemy_engine):
                    if_exists='append', index=False)
 
 def main():
-    engine = create_engine(os.environ['NBA_CONNECT'])
+    engine = create_engine(os.environ['NBA_CONNECT_DEV'])
     seasons = [2016, 2017, 2018]
     for season in seasons:
         for game in range(int(f'2{str(season)[2:]}00001'), int(f'2{str(season)[2:]}01231')):
