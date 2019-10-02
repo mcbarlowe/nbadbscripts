@@ -30,7 +30,7 @@ def calc_possesions(game_df, engine):
                                            (game_df.is_d_rebound == 0) &
                                            (game_df.is_o_rebound == 0) &
                                            (game_df.event_team == game_df.away_team_abbrev) &
-                                           (game_df.event_type_de.shift(-1) != 'free-throw')),
+                                           (game_df.event_type_de.shift(1) != 'free-throw')),
                                           1, game_df['home_possession'])
 #calculating final free throw possessions
     game_df['home_possession'] = np.where((game_df.event_team == game_df.home_team_abbrev) &
@@ -50,7 +50,7 @@ def calc_possesions(game_df, engine):
                                            (game_df.is_d_rebound == 0) &
                                            (game_df.is_o_rebound == 0) &
                                            (game_df.event_team == game_df.home_team_abbrev) &
-                                           (game_df.event_type_de.shift(-1) != 'free-throw')),
+                                           (game_df.event_type_de.shift(1) != 'free-throw')),
                                           1, game_df['away_possession'])
 #calculating final free throw possessions
     game_df['away_possession'] = np.where((game_df.event_team == game_df.away_team_abbrev) &
