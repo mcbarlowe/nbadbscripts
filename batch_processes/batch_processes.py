@@ -1,7 +1,7 @@
 '''
 This script runs the batch processes for the NBA database
 '''
-import datetime
+#import datetime
 import math
 import os
 import logging
@@ -89,7 +89,7 @@ def calc_team_stats(game_df, engine):
     teams_df.to_sql('teambygamestats', engine, schema='nba', method='multi',
                    if_exists='append', index=False)
 
-def calc_possesions(game_df, engine):
+def calc_possessions(game_df, engine):
     '''
     funciton to calculate possesion numbers for both team and players
     and insert into possesion tables
@@ -101,19 +101,26 @@ def calc_possesions(game_df, engine):
     Outputs:
     None
     '''
-#calculating made shot possessions
+    #calculating made shot possessions
     game_df['home_possession'] = np.where((game_df.event_team == game_df.home_team_abbrev) &
                                          (game_df.event_type_de == 'shot'), 1, 0)
 #calculating turnover possessions
     game_df['home_possession'] = np.where((game_df.event_team == game_df.home_team_abbrev) &
                                          (game_df.event_type_de == 'turnover'), 1, game_df['home_possession'])
 #calculating defensive rebound possessions
-    game_df['home_possession'] = np.where((game_df.event_team == game_df.home_team_abbrev) &
-                                         (game_df.is_d_rebound == 1), 1, game_df['home_possession'])
+    game_df['home_possession'] = np.where(((game_df.event_team == game_df.away_team_abbrev) &
+                                         (game_df.is_d_rebound == 1)) |
+                                          ((game_df.event_type_de == 'rebound') &
+                                           (game_df.is_d_rebound == 0) &
+                                           (game_df.is_o_rebound == 0) &
+                                           (game_df.event_team == game_df.away_team_abbrev) &
+                                           (game_df.event_type_de.shift(-1) != 'free-throw')),
+                                          1, game_df['home_possession'])
 #calculating final free throw possessions
     game_df['home_possession'] = np.where((game_df.event_team == game_df.home_team_abbrev) &
                                          ((game_df.homedescription.str.contains('Free Throw 2 of 2')) |
-                                           (game_df.homedescription.str.contains('Free Throw 3 of 3'))), 1, game_df['home_possession'])
+                                           (game_df.homedescription.str.contains('Free Throw 3 of 3'))),
+                                         1, game_df['home_possession'])
 #calculating made shot possessions
     game_df['away_possession'] = np.where((game_df.event_team == game_df.away_team_abbrev) &
                                          (game_df.event_type_de == 'shot'), 1, 0)
@@ -121,12 +128,19 @@ def calc_possesions(game_df, engine):
     game_df['away_possession'] = np.where((game_df.event_team == game_df.away_team_abbrev) &
                                          (game_df.event_type_de == 'turnover'), 1, game_df['away_possession'])
 #calculating defensive rebound possessions
-    game_df['away_possession'] = np.where((game_df.event_team == game_df.away_team_abbrev) &
-                                         (game_df.is_d_rebound == 1), 1, game_df['away_possession'])
+    game_df['away_possession'] = np.where(((game_df.event_team == game_df.home_team_abbrev) &
+                                         (game_df.is_d_rebound == 1)) |
+                                          ((game_df.event_type_de == 'rebound') &
+                                           (game_df.is_d_rebound == 0) &
+                                           (game_df.is_o_rebound == 0) &
+                                           (game_df.event_team == game_df.home_team_abbrev) &
+                                           (game_df.event_type_de.shift(-1) != 'free-throw')),
+                                          1, game_df['away_possession'])
 #calculating final free throw possessions
     game_df['away_possession'] = np.where((game_df.event_team == game_df.away_team_abbrev) &
                                          ((game_df.visitordescription.str.contains('Free Throw 2 of 2')) |
-                                           (game_df.visitordescription.str.contains('Free Throw 3 of 3'))), 1, game_df['away_possession'])
+                                           (game_df.visitordescription.str.contains('Free Throw 3 of 3'))),
+                                         1, game_df['away_possession'])
     #calculating player possesions
     player1 = game_df[['home_player_1', 'home_player_1_id', 'home_possession', 'game_id', 'home_team_id']]\
               .rename(columns={'home_player_1': 'player_name', 'home_player_1_id': 'player_id'})
@@ -193,6 +207,17 @@ def get_game_ids(api):
     game_ids = [game[2][2:] for game in games]
     return game_ids
 
+def get_player_details(players, engine):
+    '''
+    this function will check and see if the players in the play by play dataframe
+    are in the player_details table and if not will hit the nba player api get
+    them and insert them into the database
+    '''
+    #TODO this needs to be finished at some point
+    #for player in players:
+    #url = f'https://stats.nba.com/stats/commonplayerinfo?LeagueID=&PlayerID={p}'
+
+    pass
 def main():
     '''
     Main function to run to scrape games daily
@@ -205,7 +230,7 @@ def main():
                         format='%(asctime)s - %(levelname)s: %(message)s')
 
     # TODO uncomment this when testing is done
-    yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
+    #yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
     #games_api = ('https://stats.nba.com/stats/scoreboard?'
     #             f'DayOffset=0&GameDate={DATE.strftime("%Y-%m-%d")}&LeagueID=00')
     date = '2019-04-04'
@@ -244,12 +269,12 @@ def main():
         logging.info("Inserting boxscore for %s into nba.playerbygamestats",
                      game_df.game_id.unique()[0])
 
-        calc_team_stats(game_df, engine)
+        #calc_team_stats(game_df, engine)
         logging.info("Inserting  boxscore for %s into nba.teambygamestats",
                      game_df.game_id.unique()[0])
 
-        calc_possesions(game_df, engine)
-        # TODO Calculate per possesion stats and RAPM plus any other advanced
+        calc_possessions(game_df, engine)
+        # TODO Calculate RAPM plus any other advanced
         # TODO stats I happen to find for teams and players
         engine.connect().execute(sqlqueries.pbgs_calc.format(game_id=game_df.game_id.unique()[0]))
 

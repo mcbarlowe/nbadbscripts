@@ -275,6 +275,7 @@ def main():
         key_col = Column(String, primary_key=True, nullable=False)
         player_id = Column(Integer)
         season = Column(Integer)
+        team_abbrev = Column(String)
         efg_percentage = Column(Numeric)
         true_shooting_percentage = Column(Numeric)
         oreb_percentage = Column(Numeric)
@@ -299,6 +300,7 @@ def main():
         team_abbrev = Column(String)
         season = Column(Integer)
         efg_percentage = Column(Numeric)
+        true_shooting_percentage = Column(Numeric)
         tov_percentage = Column(Numeric)
         oreb_percentage = Column(Numeric)
         ft_per_fga = Column(Numeric)
@@ -308,6 +310,14 @@ def main():
         opp_ft_per_fga = Column(Numeric)
         off_rating = Column(Numeric)
         def_rating = Column(Numeric)
+
+    class game_shifts(Base):
+        '''
+        creates table that will store the shifts used for the RAPM calculations
+        '''
+        __tablename__ = 'rapm_shifts'
+        __table_args__ = {'schema': 'nba'}
+
 
 
     Base.metadata.create_all(engine)
