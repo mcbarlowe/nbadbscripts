@@ -42,11 +42,12 @@ def one_year_rapm_calc(season, sa_engine):
     '''
 
     # pull shifts from table
-    shifts_df = pd.read_sql_query(f'select * from nba.rapm_shifts where season = {season};', sa_engine)
+    #shifts_df = pd.read_sql_query(f'select * from nba.rapm_shifts where season = {season};', sa_engine)
 
-    shifts_df = shifts_df[shifts_df.possessions != 0]
+    #shifts_df = shifts_df[shifts_df.possessions != 0]
 
     # pull out unique player ids
+    shifts_df = pd.read_csv('possessions_data.csv')
     players = list(set(list(shifts_df['off_player_1_id'].unique()) +
                        list(shifts_df['off_player_2_id'].unique()) +
                        list(shifts_df['off_player_3_id'].unique()) +
@@ -59,6 +60,7 @@ def one_year_rapm_calc(season, sa_engine):
                        list(shifts_df['def_player_5_id'].unique())))
 
     players.sort()
+    shifts_df['points_per_100_poss'] = shifts_df['points_made'] * 100
     train_x = shifts_df.as_matrix(columns=['off_player_1_id', 'off_player_2_id',
                                                  'off_player_3_id', 'off_player_4_id', 'off_player_5_id',
                                                  'def_player_1_id', 'def_player_2_id',
@@ -66,7 +68,7 @@ def one_year_rapm_calc(season, sa_engine):
 
     train_x = np.apply_along_axis(map_players, 1, train_x, players)
     train_y = shifts_df.as_matrix(['points_per_100_poss'])
-    possessions = shifts_df['possessions']
+    #possessions = shifts_df['possessions']
 
     lambdas_rapm = [.01, .05, .1 ]
     alphas = [lambda_to_alpha(l, train_x.shape[0]) for l in lambdas_rapm]
@@ -99,10 +101,11 @@ def one_year_rapm_calc(season, sa_engine):
 
     print(f'This is the intercept of the model: {intercept}')
     print(players_coef.head())
-    player_df = pd.read_sql_query(f'select * from nba.player_details;', sa_engine)
+    #player_df = pd.read_sql_query(f'select * from nba.player_details;', sa_engine)
 
-    results_df = players_coef.merge(player_df[['player_id', 'display_first_last']], on='player_id')
-    results_df.to_csv('rapm_results.csv')
+    #results_df = players_coef.merge(player_df[['player_id', 'display_first_last']], on='player_id')
+    #results_df.to_csv('rapm_results.csv')
+    players_coef.to_csv('rapm_results.csv')
 
 
 def main():
