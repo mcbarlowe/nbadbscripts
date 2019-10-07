@@ -99,7 +99,7 @@ def calc_possessions(game_df, engine):
     engine   - sql alchemy engine
 
     Outputs:
-    None
+    game_df  - pbp dataframe with the possessions calculated
     '''
     #calculating made shot possessions
     game_df['home_possession'] = np.where((game_df.event_team == game_df.home_team_abbrev) &
@@ -188,6 +188,8 @@ def calc_possessions(game_df, engine):
     team_possession_df.to_sql('team_possessions', engine, schema='nba',
                          if_exists='append', index=False, method='multi')
 
+    return game_df
+
 def get_game_ids(api):
     '''
     This function gets the game ids of games returned from the api
@@ -260,8 +262,6 @@ def main():
                                   'away_player_1_id': int, 'away_player_3_id': int,
                                   'away_player_4_id': int, 'away_player_5_id': int})
         game_df.drop(['video_available_flag'], axis=1, inplace=True)
-        game_df.to_sql('pbp', engine, schema='nba',
-                       if_exists='append', index=False, method='multi')
 
         # calculating player stats here
         # TODO rewrite this sql query i use for this into a python funciton
@@ -273,7 +273,9 @@ def main():
         logging.info("Inserting  boxscore for %s into nba.teambygamestats",
                      game_df.game_id.unique()[0])
 
-        calc_possessions(game_df, engine)
+        game_df = calc_possessions(game_df, engine)
+        game_df.to_sql('pbp', engine, schema='nba',
+                       if_exists='append', index=False, method='multi')
         # TODO Calculate RAPM plus any other advanced
         # TODO stats I happen to find for teams and players
         engine.connect().execute(sqlqueries.pbgs_calc.format(game_id=game_df.game_id.unique()[0]))

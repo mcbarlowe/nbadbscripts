@@ -1,9 +1,67 @@
-import numpy as np
-import pandas as pd
 '''
 this extracts shifts from the pbp to use for the calculation of RAPM
 stats
 '''
+import os
+import numpy as np
+import pandas as pd
+from sqlalchemy import create_engine
+
+def calc_possession(game_df):
+    '''
+    funciton to calculate possesion numbers for both team and players
+    and insert into possesion tables. This will only be used for pbp that doesn't
+    have home/away possession columns calculated will be deprecated in the future
+    and calculated on the initial scrape
+
+    Inputs:
+    game_df  - dataframe of nba play by play
+    engine   - sql alchemy engine
+
+    Outputs:
+    None
+    '''
+    #calculating made shot possessions
+    game_df['home_possession'] = np.where((game_df.event_team == game_df.home_team_abbrev) &
+                                         (game_df.event_type_de == 'shot'), 1, 0)
+#calculating turnover possessions
+    game_df['home_possession'] = np.where((game_df.event_team == game_df.home_team_abbrev) &
+                                         (game_df.event_type_de == 'turnover'), 1, game_df['home_possession'])
+#calculating defensive rebound possessions
+    game_df['home_possession'] = np.where(((game_df.event_team == game_df.away_team_abbrev) &
+                                         (game_df.is_d_rebound == 1)) |
+                                          ((game_df.event_type_de == 'rebound') &
+                                           (game_df.is_d_rebound == 0) &
+                                           (game_df.is_o_rebound == 0) &
+                                           (game_df.event_team == game_df.away_team_abbrev) &
+                                           (game_df.event_type_de.shift(1) != 'free-throw')),
+                                          1, game_df['home_possession'])
+#calculating final free throw possessions
+    game_df['home_possession'] = np.where((game_df.event_team == game_df.home_team_abbrev) &
+                                         ((game_df.homedescription.str.contains('Free Throw 2 of 2')) |
+                                           (game_df.homedescription.str.contains('Free Throw 3 of 3'))),
+                                         1, game_df['home_possession'])
+#calculating made shot possessions
+    game_df['away_possession'] = np.where((game_df.event_team == game_df.away_team_abbrev) &
+                                         (game_df.event_type_de == 'shot'), 1, 0)
+#calculating turnover possessions
+    game_df['away_possession'] = np.where((game_df.event_team == game_df.away_team_abbrev) &
+                                         (game_df.event_type_de == 'turnover'), 1, game_df['away_possession'])
+#calculating defensive rebound possessions
+    game_df['away_possession'] = np.where(((game_df.event_team == game_df.home_team_abbrev) &
+                                         (game_df.is_d_rebound == 1)) |
+                                          ((game_df.event_type_de == 'rebound') &
+                                           (game_df.is_d_rebound == 0) &
+                                           (game_df.is_o_rebound == 0) &
+                                           (game_df.event_team == game_df.home_team_abbrev) &
+                                           (game_df.event_type_de.shift(1) != 'free-throw')),
+                                          1, game_df['away_possession'])
+#calculating final free throw possessions
+    game_df['away_possession'] = np.where((game_df.event_team == game_df.away_team_abbrev) &
+                                         ((game_df.visitordescription.str.contains('Free Throw 2 of 2')) |
+                                           (game_df.visitordescription.str.contains('Free Throw 3 of 3'))),
+                                         1, game_df['away_possession'])
+    return game_df
 
 def extract_shifts(pbp_df, engine):
         #this is done to assign proper points to players who may be subbed of during free throw shots
@@ -14,7 +72,7 @@ def extract_shifts(pbp_df, engine):
     shift_dfs = []
     past_index = 0
     for i in pbp_df[pbp_df.event_type_de == 'substitution'].index:
-        shift_dfs.append(pbp_df.iloc[past_index: i, :])
+        shift_dfs.append(pbp_df.iloc[past_index+1: i+1, :])
         past_index = i
 
 #removing any shift where a possesion doesn't happen
@@ -87,8 +145,17 @@ def extract_shifts(pbp_df, engine):
                          if_exists='append', index=False)
 
 def main():
-    pass
+    engine = create_engine(os.environ['NBA_CONNECT_DEV'])
+    seasons = [2016, 2017, 2018]
+    for season in seasons:
+        pbp_df = pd.read_sql_query(f'select * from nba.pbp where season = {season};', engine)\
+            .sort_values(by=['game_id', 'seconds_elapsed', 'eventnum']).reset_index()
+        points_by_second = pbp_df.groupby(['game_id', 'seconds_elapsed'])['points_made'].sum().reset_index()
+        for game in range(int(f'2{str(season)[2:]}00001'), int(f'2{str(season)[2:]}01231')):
+            pbp_df = pd.read_sql_query(f'select * from nba.pbp where game_id = {game};', engine).sort_values(by=['seconds_elapsed', 'eventnum']).reset_index()
+            pbp_df = calc_possessions(pbp_df)
 
+    pass
 if __name__ == '__main__':
     main()
 

@@ -1,6 +1,6 @@
 import os
 from sqlalchemy import create_engine
-import sqlqueries
+#import sqlqueries
 import pandas as pd
 import numpy as np
 import math
@@ -17,9 +17,13 @@ def calc_possesions(game_df, engine):
     Outputs:
     None
     '''
-    #calculating made shot possessions
+        #calculating made shot possessions
     game_df['home_possession'] = np.where((game_df.event_team == game_df.home_team_abbrev) &
-                                         (game_df.event_type_de == 'shot'), 1, 0)
+                                         (game_df.event_type_de == 'shot'),
+                                          np.where((game_df.event_type_de.shift(-1) == 'foul') &
+                                                   (game_df.visitordescription.shift(-1).str.contains('S.FOUL'))
+                                                   , 0, 1)
+                                          , 0)
 #calculating turnover possessions
     game_df['home_possession'] = np.where((game_df.event_team == game_df.home_team_abbrev) &
                                          (game_df.event_type_de == 'turnover'), 1, game_df['home_possession'])
@@ -35,11 +39,16 @@ def calc_possesions(game_df, engine):
 #calculating final free throw possessions
     game_df['home_possession'] = np.where((game_df.event_team == game_df.home_team_abbrev) &
                                          ((game_df.homedescription.str.contains('Free Throw 2 of 2')) |
-                                           (game_df.homedescription.str.contains('Free Throw 3 of 3'))),
+                                           (game_df.homedescription.str.contains('Free Throw 3 of 3')) |
+                                           (game_df.homedescription.str.contains('Free Throw 1 of 1'))),
                                          1, game_df['home_possession'])
 #calculating made shot possessions
     game_df['away_possession'] = np.where((game_df.event_team == game_df.away_team_abbrev) &
-                                         (game_df.event_type_de == 'shot'), 1, 0)
+                                         (game_df.event_type_de == 'shot'),
+                                           np.where(game_df.event_type_de.shift(-1) == 'foul' &
+                                                    (game_df.homedescription.shift(-1).str.contains('S.FOUL'))
+                                                    , 0, 1),
+                                          0)
 #calculating turnover possessions
     game_df['away_possession'] = np.where((game_df.event_team == game_df.away_team_abbrev) &
                                          (game_df.event_type_de == 'turnover'), 1, game_df['away_possession'])
@@ -55,7 +64,8 @@ def calc_possesions(game_df, engine):
 #calculating final free throw possessions
     game_df['away_possession'] = np.where((game_df.event_team == game_df.away_team_abbrev) &
                                          ((game_df.visitordescription.str.contains('Free Throw 2 of 2')) |
-                                           (game_df.visitordescription.str.contains('Free Throw 3 of 3'))),
+                                           (game_df.visitordescription.str.contains('Free Throw 3 of 3')) |
+                                           (game_df.visitordescription.str.contains('Free Throw 1 of 1'))),
                                          1, game_df['away_possession'])
     #calculating player possesions
     player1 = game_df[['home_player_1', 'home_player_1_id', 'home_possession', 'game_id', 'home_team_id']]\

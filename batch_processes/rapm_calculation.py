@@ -73,7 +73,7 @@ def one_year_rapm_calc(season, sa_engine):
     lambdas_rapm = [.01, .05, .1 ]
     alphas = [lambda_to_alpha(l, train_x.shape[0]) for l in lambdas_rapm]
     clf = RidgeCV(alphas=alphas, cv=5, fit_intercept=True, normalize=False)
-    model = clf.fit(train_x, train_y)
+    model = clf.fit(train_x, train_y )
     player_arr = np.transpose(np.array(players).reshape(1, len(players)))
 
     # extract our coefficients into the offensive and defensive parts
