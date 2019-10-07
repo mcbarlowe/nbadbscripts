@@ -2,3 +2,4 @@ dbcreate.logs
 .ipynb_checkpoints/
 __pycache__/
 batchprocess.logs
+.DS_Store
