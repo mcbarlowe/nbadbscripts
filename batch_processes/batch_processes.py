@@ -11,6 +11,8 @@ from sqlalchemy import create_engine
 import pandas as pd
 import numpy as np
 import sqlqueries
+import datetime
+import time
 
 
 def calc_team_stats(game_df, engine):
@@ -85,6 +87,7 @@ def calc_team_stats(game_df, engine):
                          'fgm', 'fga', 'tpm', 'tpa', 'ftm',
                          'fta', 'oreb', 'dreb', 'tov', 'stl', 'ast',
                          'blk', 'shots_blocked', 'pf',  'pf_drawn', 'plus_minus', 'is_home']]
+    teams_df['key_col'] = teams_df['game_id'].astype(str) + teams_df['team_abbrev']
 
     teams_df.to_sql('teambygamestats', engine, schema='nba', method='multi',
                    if_exists='append', index=False)
@@ -99,7 +102,7 @@ def calc_possessions(game_df, engine):
     engine   - sql alchemy engine
 
     Outputs:
-    game_df  - pbp dataframe with the possessions calculated
+    None
     '''
     #calculating made shot possessions
     game_df['home_possession'] = np.where((game_df.event_team == game_df.home_team_abbrev) &
@@ -179,8 +182,8 @@ def calc_possessions(game_df, engine):
             game_df.away_team_abbrev.unique()[0], game_df['away_possession'].sum()]
     team_possession_df = pd.DataFrame([row1,row2], columns=['team_id', 'game_id', 'team_abbrev', 'possessions'])
 
-    possession_df['key_col'] = possession_df['player_id'] + possession_df['game_id']
-    team_possession_df['key_col'] = team_possession_df['team_id'] + team_possession_df['game_id']
+    possession_df['key_col'] = possession_df['player_id'].astype(str) + possession_df['game_id'].astype(str)
+    team_possession_df['key_col'] = team_possession_df['team_id'].astype(str) + team_possession_df['game_id'].astype(str)
 
     possession_df.to_sql('player_possessions', engine, schema='nba',
                          if_exists='append', index=False, method='multi')
@@ -188,22 +191,22 @@ def calc_possessions(game_df, engine):
     team_possession_df.to_sql('team_possessions', engine, schema='nba',
                          if_exists='append', index=False, method='multi')
 
-    return game_df
-
-def get_game_ids(api):
+def get_game_ids(date):
     '''
     This function gets the game ids of games returned from the api
     endpoint
 
     Inputs:
-    api  - nba Scoreboard api endpoint
+    date - date which to get the game ids of games played
 
     Ouputs:
     game_ids - list of game ids
     '''
 
+    games_api = ('https://stats.nba.com/stats/scoreboard?'
+                 f'DayOffset=0&GameDate={date.strftime("%Y-%m-%d")}&LeagueID=00')
     user_agent = {'User-agent': 'Mozilla/5.0'}
-    scoreboard = requests.get(api, headers=user_agent).json()
+    scoreboard = requests.get(games_api, headers=user_agent).json()
 
     games = scoreboard['resultSets'][0]['rowSet']
     game_ids = [game[2][2:] for game in games]
@@ -232,26 +235,31 @@ def main():
                         format='%(asctime)s - %(levelname)s: %(message)s')
 
     # TODO uncomment this when testing is done
+    # get the game ids of the games played yesterday
     #yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
+    yesterday = datetime.datetime.now() - datetime.timedelta(days=5)
+    games = get_game_ids(yesterday)
+    #date = '2019-04-04'
     #games_api = ('https://stats.nba.com/stats/scoreboard?'
-    #             f'DayOffset=0&GameDate={DATE.strftime("%Y-%m-%d")}&LeagueID=00')
-    date = '2019-04-04'
-    games_api = ('https://stats.nba.com/stats/scoreboard?'
-                 f'DayOffset=0&GameDate={date}&LeagueID=00')
-    games = get_game_ids(games_api)
+    #             f'DayOffset=0&GameDate={date}&LeagueID=00')
+
     if games == []:
-        logging.info("No games on %s", date)
+        logging.info("No games on %s", yesterday)
         return
     # creates a list of play by play dataframes to process
-    games_df_list = [ns.scrape_game([game]) for game in games]
+    games_df_list = []
+    for game in games:
+        games_df_list.append(ns.scrape_game([game]))
+        time.sleep(1)
+
     for game_df in games_df_list:
-        logging.info("Inserting %s into nba.pbp",
-                     game_df.game_id.unique()[0])
         game_df.columns = list(map(str.lower, game_df.columns))
         game_df['key_col'] = (game_df['game_id'].astype(str) +
                               game_df['eventnum'].astype(str) +
                               game_df['game_date'].astype(str) +
-                              game_df['home_team_abbrev'] + game_df['away_team_abbrev'])
+                              game_df['home_team_abbrev'] + game_df['away_team_abbrev'] +
+                              game_df['seconds_elapsed'].astype(str) +
+                              game_df.index.astype(str))
         game_df = game_df.astype({'is_d_rebound': bool, 'is_o_rebound': bool,
                                   'is_turnover': bool, 'is_steal': bool,
                                   'is_putback': bool, 'is_block': bool,
@@ -262,23 +270,32 @@ def main():
                                   'away_player_1_id': int, 'away_player_3_id': int,
                                   'away_player_4_id': int, 'away_player_5_id': int})
         game_df.drop(['video_available_flag'], axis=1, inplace=True)
+        try:
+            game_df.to_sql('pbp', engine, schema='nba',
+                           if_exists='append', index=False, method='multi')
+            logging.info("Inserting play by play for %s into nba.playerbygamestats",
+                         game_df.game_id.unique()[0])
+        except Exception as e:
+            print(e)
+            logging.error("Play by play for %s failed to insert into nba.pbp",
+                         game_df.game_id.unique()[0])
 
-        # calculating player stats here
+
         # TODO rewrite this sql query i use for this into a python funciton
         # TODO to make debuggin easier in the future 9-2-2019
-        logging.info("Inserting boxscore for %s into nba.playerbygamestats",
+        logging.info("Inserting player boxscore for %s into nba.playerbygamestats",
                      game_df.game_id.unique()[0])
+        engine.connect().execute(sqlqueries.pbgs_calc.format(game_id=game_df.game_id.unique()[0]))
 
-        #calc_team_stats(game_df, engine)
-        logging.info("Inserting  boxscore for %s into nba.teambygamestats",
+        logging.info("Inserting team boxscore for %s into nba.teambygamestats",
                      game_df.game_id.unique()[0])
+        calc_team_stats(game_df, engine)
 
+        logging.info("Inserting possession data for %s into nba.teambygamestats",
+                     game_df.game_id.unique()[0])
         game_df = calc_possessions(game_df, engine)
-        game_df.to_sql('pbp', engine, schema='nba',
-                       if_exists='append', index=False, method='multi')
         # TODO Calculate RAPM plus any other advanced
         # TODO stats I happen to find for teams and players
-        engine.connect().execute(sqlqueries.pbgs_calc.format(game_id=game_df.game_id.unique()[0]))
 
 if __name__ == '__main__':
     main()

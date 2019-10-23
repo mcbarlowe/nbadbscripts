@@ -1,14 +1,39 @@
-2019-06-22 00:23:19,920 - INFO: No games on 2019-07-15
-2019-06-22 01:32:56,659 - INFO: Inserting 0021801026 into nba.pbp
-2019-06-22 01:58:29,864 - INFO: Inserting 0021801177 into nba.pbp
-2019-06-22 02:17:46,730 - INFO: Inserting 0021801177 into nba.pbp
-2019-06-23 15:54:44,022 - INFO: Inserting 0021801177 into nba.pbp
-2019-06-23 17:01:55,083 - INFO: Inserting 0021801177 into nba.pbp
-2019-06-23 17:35:24,069 - INFO: Inserting 0021801177 into nba.pbp
-2019-06-23 17:35:40,755 - INFO: Inserting boxscore for 0021801177 into nba.playerbygamestats
-2019-06-23 17:39:38,763 - INFO: Inserting 0021801177 into nba.pbp
-2019-06-23 17:39:57,054 - INFO: Inserting boxscore for 0021801177 into nba.playerbygamestats
-2019-06-23 17:39:57,344 - INFO: Inserting 0021801178 into nba.pbp
-2019-06-23 17:40:10,720 - INFO: Inserting boxscore for 0021801178 into nba.playerbygamestats
-2019-06-23 17:40:11,000 - INFO: Inserting 0021801179 into nba.pbp
-2019-06-23 17:40:27,842 - INFO: Inserting boxscore for 0021801179 into nba.playerbygamestats
+2019-10-22 23:06:47,101 - INFO: Inserting play by play for 0011900069 into nba.playerbygamestats
+2019-10-22 23:06:47,103 - INFO: Inserting player boxscore for 0011900069 into nba.playerbygamestats
+2019-10-22 23:06:47,239 - INFO: Inserting  boxscore for 0011900069 into nba.teambygamestats
+2019-10-22 23:06:48,621 - INFO: Inserting play by play for 0011900070 into nba.playerbygamestats
+2019-10-22 23:06:48,622 - INFO: Inserting player boxscore for 0011900070 into nba.playerbygamestats
+2019-10-22 23:06:48,806 - INFO: Inserting  boxscore for 0011900070 into nba.teambygamestats
+2019-10-22 23:06:50,283 - INFO: Inserting play by play for 0011900071 into nba.playerbygamestats
+2019-10-22 23:06:50,284 - INFO: Inserting player boxscore for 0011900071 into nba.playerbygamestats
+2019-10-22 23:06:50,420 - INFO: Inserting  boxscore for 0011900071 into nba.teambygamestats
+2019-10-22 23:06:51,753 - INFO: Inserting play by play for 0011900072 into nba.playerbygamestats
+2019-10-22 23:06:51,754 - INFO: Inserting player boxscore for 0011900072 into nba.playerbygamestats
+2019-10-22 23:06:51,860 - INFO: Inserting  boxscore for 0011900072 into nba.teambygamestats
+2019-10-22 23:06:53,196 - INFO: Inserting play by play for 0011900073 into nba.playerbygamestats
+2019-10-22 23:06:53,196 - INFO: Inserting player boxscore for 0011900073 into nba.playerbygamestats
+2019-10-22 23:06:53,323 - INFO: Inserting  boxscore for 0011900073 into nba.teambygamestats
+2019-10-22 23:16:49,328 - INFO: Inserting play by play for 0011900069 into nba.playerbygamestats
+2019-10-22 23:16:49,329 - INFO: Inserting player boxscore for 0011900069 into nba.playerbygamestats
+2019-10-22 23:16:50,256 - INFO: Inserting team boxscore for 0011900069 into nba.teambygamestats
+2019-10-22 23:16:50,512 - INFO: Inserting possession data for 0011900069 into nba.teambygamestats
+2019-10-22 23:27:18,584 - INFO: Inserting play by play for 0011900069 into nba.playerbygamestats
+2019-10-22 23:27:18,586 - INFO: Inserting player boxscore for 0011900069 into nba.playerbygamestats
+2019-10-22 23:27:18,723 - INFO: Inserting team boxscore for 0011900069 into nba.teambygamestats
+2019-10-22 23:27:18,979 - INFO: Inserting possession data for 0011900069 into nba.teambygamestats
+2019-10-22 23:27:21,279 - INFO: Inserting play by play for 0011900070 into nba.playerbygamestats
+2019-10-22 23:27:21,280 - INFO: Inserting player boxscore for 0011900070 into nba.playerbygamestats
+2019-10-22 23:27:21,404 - INFO: Inserting team boxscore for 0011900070 into nba.teambygamestats
+2019-10-22 23:27:21,668 - INFO: Inserting possession data for 0011900070 into nba.teambygamestats
+2019-10-22 23:27:23,772 - INFO: Inserting play by play for 0011900071 into nba.playerbygamestats
+2019-10-22 23:27:23,772 - INFO: Inserting player boxscore for 0011900071 into nba.playerbygamestats
+2019-10-22 23:27:23,939 - INFO: Inserting team boxscore for 0011900071 into nba.teambygamestats
+2019-10-22 23:27:24,209 - INFO: Inserting possession data for 0011900071 into nba.teambygamestats
+2019-10-22 23:27:26,136 - INFO: Inserting play by play for 0011900072 into nba.playerbygamestats
+2019-10-22 23:27:26,137 - INFO: Inserting player boxscore for 0011900072 into nba.playerbygamestats
+2019-10-22 23:27:26,313 - INFO: Inserting team boxscore for 0011900072 into nba.teambygamestats
+2019-10-22 23:27:26,574 - INFO: Inserting possession data for 0011900072 into nba.teambygamestats
+2019-10-22 23:27:28,581 - INFO: Inserting play by play for 0011900073 into nba.playerbygamestats
+2019-10-22 23:27:28,581 - INFO: Inserting player boxscore for 0011900073 into nba.playerbygamestats
+2019-10-22 23:27:28,711 - INFO: Inserting team boxscore for 0011900073 into nba.teambygamestats
+2019-10-22 23:27:28,965 - INFO: Inserting possession data for 0011900073 into nba.teambygamestats
