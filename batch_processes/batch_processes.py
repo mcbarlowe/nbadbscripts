@@ -13,6 +13,101 @@ import numpy as np
 import sqlqueries
 import datetime
 import time
+import player_advanced_stats as pas
+
+def calc_player_advanced_stats(season, engine):
+    '''
+    this function will calculated the stats on the team/player advanced tabs
+    for the curent season. It will drop the current table based on season passed,
+    recalculate the stats, and then reinsert them into the table.
+
+    Inputs:
+    season  - current season needed to be calculated
+    engine  - SQLAlchemy engine
+
+    Outputs:
+    None
+    '''
+
+    #delete old values
+    #engine.connect().execute(f'DELETE from nba.player_advanced_stats where season = {season};')
+    #engine.connect().execute(f'DELETE from nba.team_advanced_stats where season = {season};')
+    player_possessions = pd.read_sql_query(pas.player_possession_query.format(season=season), engine)
+    plus_minus_df = pd.read_sql_query(pas.plus_minus_sql.format(season=season), engine)
+    pm_df = plus_minus_df[~plus_minus_df.isna()]
+    ratings_df = pm_df.merge(player_possessions, on=['player_id', 'season'])
+    ratings_df['off_rating'] = (ratings_df['plus'] * 100)/ratings_df['possessions']
+    ratings_df['def_rating'] = (ratings_df['minus'] * 100)/ratings_df['possessions']
+    team_df = pd.read_sql_query(pas.team_query.format(season=season), engine)
+    print(pm_df.head)
+    print(player_possessions.head)
+    print(team_df.head)
+
+#calculating effective fg% and true fg%
+    players_df = pd.read_sql_query(f'select * from nba.playerbygamestats where toc > 0 and season = {season};', engine)
+    players_df = players_df.merge(team_df, on=['game_id', 'team_id'])
+    player_teams = players_df.groupby(['player_id', 'player_name', 'season'])\
+        .apply(lambda x: pd.Series({'team_abbrev':'/'.join(x['team_abbrev'].unique())})).reset_index()
+    player_efg = players_df.groupby(['player_id', 'player_name', 'season'])['fgm', 'tpm', 'fga', 'points', 'fta']\
+        .sum().reset_index()
+    player_efg['efg_percentage'] = (player_efg['fgm'] + (.5 * player_efg['tpm']))/player_efg['fga']
+    player_efg['true_shooting_percentage'] = player_efg['points']/(2 * (player_efg['fga'] + (player_efg['fta'] * .44)))
+    player_stats = player_teams.merge(player_efg[['player_id', 'season',
+                                                  'efg_percentage', 'true_shooting_percentage']],
+                                      on=['player_id', 'season'])
+#calculating percentage stats
+    percentage_stats = players_df.groupby(['player_id', 'player_name', 'season'])\
+                        ['toc', 'oreb', 'dreb', 'tov', 'stl', 'blk', 'ast', 'fgm', 'fga',
+                         'tpm', 'tpa', 'ftm' , 'fta',
+                         'team_toc', 'team_oreb', 'team_dreb', 'team_tov',
+                         'team_fgm', 'team_fga', 'team_ftm', 'team_fta',
+                         'team_tpm' ,'team_tpa', 'opp_fga', 'opp_fgm',
+                         'opp_fta', 'opp_ftm', 'opp_tpa', 'opp_tpm',
+                         'team_stl', 'team_blk', 'opp_toc', 'opp_dreb',
+                         'opp_oreb', 'opp_ast', 'opp_tov', 'opp_stl',
+                         'opp_blk', 'team_possessions', 'opp_possessions']\
+                        .sum().reset_index()
+
+    percentage_stats['oreb_percentage'] = ((percentage_stats['oreb'] * (percentage_stats['team_toc']/60))/
+                                           ((percentage_stats['toc']/60) *
+                                            (percentage_stats['team_oreb'] + percentage_stats['opp_dreb']))) * 100
+    percentage_stats['dreb_percentage'] = ((percentage_stats['dreb'] * (percentage_stats['team_toc']/60))/
+                                           ((percentage_stats['toc']/60) *
+                                            (percentage_stats['team_dreb'] + percentage_stats['opp_oreb']))) * 100
+    percentage_stats['ast_percentage'] = 100 * (percentage_stats['ast']/
+                                                ((((percentage_stats['toc'])/(percentage_stats['team_toc']))
+                                                * percentage_stats['team_fgm']) - percentage_stats['fgm'])
+                                               )
+    percentage_stats['stl_percentage'] = 100 * ((percentage_stats['stl'] * (percentage_stats['team_toc']/60))/
+                                                (percentage_stats['toc']/60 * percentage_stats['opp_possessions']))
+    percentage_stats['blk_percentage'] = 100 * ((percentage_stats['blk'] * (percentage_stats['team_toc']/60))/
+                                                (percentage_stats['toc']/60 * (percentage_stats['opp_fga']-
+                                                                               percentage_stats['opp_tpa'])))
+    percentage_stats['tov_percentage'] = 100 * (percentage_stats['tov']/
+                                                (percentage_stats['fga'] + .44 * percentage_stats['fta'] +
+                                                 percentage_stats['tov']))
+    percentage_stats['usg_percentage'] = 100 * (((percentage_stats['fga'] + .44 * percentage_stats['fta'] +
+                                                percentage_stats['tov']) * percentage_stats['team_toc']/60)/(
+                                                percentage_stats['toc']/60 * (percentage_stats['team_fga'] +
+                                                                              .44 * percentage_stats['team_fta'] +
+                                                                              percentage_stats['team_tov'])))
+#merging the three dataframes together
+    player_adv_stats = player_stats.merge(percentage_stats[['player_id', 'oreb_percentage', 'dreb_percentage',
+                                                            'ast_percentage', 'stl_percentage', 'blk_percentage',
+                                                            'tov_percentage', 'usg_percentage', 'season']],
+                                          on=['player_id', 'season'])
+    player_adv_stats = player_adv_stats.merge(ratings_df[['player_id', 'season', 'off_rating', 'def_rating']],
+                                              on=['season', 'player_id'])
+    player_adv_stats['key_col'] = player_adv_stats['player_id'].astype(str) + player_adv_stats['season'].astype(str)
+
+
+
+    player_adv_stats = player_adv_stats[['player_id', 'season', 'team_abbrev', 'efg_percentage',
+                                         'true_shooting_percentage', 'oreb_percentage', 'dreb_percentage',
+                                         'ast_percentage', 'stl_percentage', 'blk_percentage', 'tov_percentage',
+                                         'usg_percentage', 'off_rating', 'def_rating', 'key_col']]
+    player_adv_stats.to_sql('player_advanced_stats', engine, schema='nba',
+                   if_exists='append', index=False, method='multi')
 
 
 def calc_team_stats(game_df, engine):
@@ -168,7 +263,7 @@ def calc_possessions(game_df, engine):
     player5 = game_df[['away_player_5', 'away_player_5_id', 'away_possession', 'game_id', 'away_team_id']]\
               .rename(columns={'away_player_5': 'player_name', 'away_player_5_id': 'player_id'})
     away_possession_df = pd.concat([player1, player2, player3, player4, player5])
-    away_possession_df.groupby(['player_id', 'player_name', 'game_id', 'away_team_id'])['away_possession'].sum().reset_index().sort_values('away_possession')
+    away_possession_df = away_possession_df.groupby(['player_id', 'player_name', 'game_id', 'away_team_id'])['away_possession'].sum().reset_index().sort_values('away_possession')
 
     home_possession_df = home_possession_df.rename(columns={'home_team_id': 'team_id',
                                                           'home_possession': 'possessions'})
@@ -184,6 +279,9 @@ def calc_possessions(game_df, engine):
 
     possession_df['key_col'] = possession_df['player_id'].astype(str) + possession_df['game_id'].astype(str)
     team_possession_df['key_col'] = team_possession_df['team_id'].astype(str) + team_possession_df['game_id'].astype(str)
+
+    possession_df['game_id'] = possession_df['game_id'].astype(int)
+    team_possession_df['game_id'] = team_possession_df['game_id'].astype(int)
 
     possession_df.to_sql('player_possessions', engine, schema='nba',
                          if_exists='append', index=False, method='multi')
@@ -237,7 +335,7 @@ def main():
     # TODO uncomment this when testing is done
     # get the game ids of the games played yesterday
     #yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
-    yesterday = datetime.datetime.now() - datetime.timedelta(days=5)
+    yesterday = datetime.datetime.now() - datetime.timedelta(days=7)
     games = get_game_ids(yesterday)
     #date = '2019-04-04'
     #games_api = ('https://stats.nba.com/stats/scoreboard?'
@@ -254,6 +352,7 @@ def main():
 
     for game_df in games_df_list:
         game_df.columns = list(map(str.lower, game_df.columns))
+        game_df['game_id'] = game_df['game_id'].str.slice(start=2)
         game_df['key_col'] = (game_df['game_id'].astype(str) +
                               game_df['eventnum'].astype(str) +
                               game_df['game_date'].astype(str) +
@@ -284,7 +383,7 @@ def main():
         # TODO rewrite this sql query i use for this into a python funciton
         # TODO to make debuggin easier in the future 9-2-2019
         logging.info("Inserting player boxscore for %s into nba.playerbygamestats",
-                     game_df.game_id.unique()[0])
+                game_df.game_id.unique()[0])
         engine.connect().execute(sqlqueries.pbgs_calc.format(game_id=game_df.game_id.unique()[0]))
 
         logging.info("Inserting team boxscore for %s into nba.teambygamestats",
@@ -293,9 +392,13 @@ def main():
 
         logging.info("Inserting possession data for %s into nba.teambygamestats",
                      game_df.game_id.unique()[0])
-        game_df = calc_possessions(game_df, engine)
-        # TODO Calculate RAPM plus any other advanced
-        # TODO stats I happen to find for teams and players
+        calc_possessions(game_df, engine)
+
+    logging.info("Inserting player advanced stats data for %s into nba.teambygamestats",
+                 game_df.game_id.unique()[0])
+    calc_player_advanced_stats(game_df['season'].unique()[0], engine)
+    # TODO Calculate RAPM plus any other advanced
+    # TODO stats I happen to find for teams and players
 
 if __name__ == '__main__':
     main()
