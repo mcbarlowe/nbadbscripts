@@ -15,6 +15,51 @@ import datetime
 import time
 import player_advanced_stats as pas
 
+def parse_player_shots(game_df, engine):
+    '''
+    Inputs:
+    game_df  - pandas dataframe of play by play
+    engine  - SQL ALchemy Engine
+
+    Outputs:
+    None
+    '''
+    user_agent = {'User-agent': 'Mozilla/5.0'}
+    game_id = '00' + game_df['game_id'].astype(str).unique()[0]
+    shots_df_list = []
+    players = list(set(list(game_df['home_player_1_id'].unique()) +
+                   list(game_df['home_player_2_id'].unique()) +
+                   list(game_df['home_player_3_id'].unique()) +
+                   list(game_df['home_player_4_id'].unique()) +
+                   list(game_df['home_player_5_id'].unique()) +
+                   list(game_df['away_player_1_id'].unique()) +
+                   list(game_df['away_player_2_id'].unique()) +
+                   list(game_df['away_player_3_id'].unique()) +
+                   list(game_df['away_player_4_id'].unique()) +
+                   list(game_df['away_player_5_id'].unique())))
+    for player in players:
+        url = ('https://stats.nba.com/stats/shotchartdetail?AheadBehind='
+            '&ClutchTime=&ContextFilter=&ContextMeasure=FGA&DateFrom='
+            f'&DateTo=&EndPeriod=&EndRange=&GameID={game_id}&GameSegment=&LastNGames=0'
+            '&LeagueID=00&Location=&Month=0&OpponentTeamID=0&Outcome=&Period=0'
+            f'&PlayerID={player}&PlayerPosition=&PointDiff=&Position=&RangeType='
+            f'&RookieYear=&Season=&SeasonSegment=&SeasonType=Regular+Season'
+            '&StartPeriod=&StartRange=&TeamID=0&VsConference=&VsDivision=')
+        shots = requests.get(url, headers=user_agent).json()
+        columns = shots['resultSets'][0]['headers']
+        rows = shots['resultSets'][0]['rowSet']
+        shots_df = pd.DataFrame(rows, columns=columns)
+        shots_df.columns = list(map(str.lower, shots_df.columns))
+        shots_df['game_id'] = shots_df['game_id'].str.slice(start=2).astype(int)
+        shots_df_list.append(shots_df)
+        time.sleep(5)
+
+    total_shots = pd.concat(shots_df_list)
+    total_shots['key_col'] = total_shots['player_id'].astype(str) + total_shots['game_id'].astype(str) +\
+                             total_shots['game_event_id'].astype(str)
+    total_shots.to_sql('shot_locations', engine, schema='nba', if_exists='append',
+                       index=False, method='multi')
+
 def calc_team_advanced_stats(season, engine):
 
     teams_df = pd.read_sql_query('select tbg.*, tp.possessions from nba.teambygamestats tbg join nba.team_possessions tp '
@@ -423,9 +468,14 @@ def main():
                      game_df.game_id.unique()[0])
         calc_team_stats(game_df, engine)
 
-        logging.info("Inserting possession data for %s into nba.teambygamestats",
+        logging.info("Inserting possession data for %s into nba.team_possesions and nba.player_possesions ",
                      game_df.game_id.unique()[0])
         calc_possessions(game_df, engine)
+        # TODO pull in shots data for game and insert into database
+        logging.info("Inserting shot data for %s into nba.shot_locations",
+                     game_df.game_id.unique()[0])
+        parse_player_shots(game_df, engine)
+        # TODO parse possessions from each game for the RAPM calculation
 
     logging.info("Inserting player advanced stats data for %s into nba.teambygamestats",
                  game_df.game_id.unique()[0])
@@ -433,8 +483,7 @@ def main():
     logging.info("Inserting team advanced stats data for %s into nba.teambygamestats",
                  game_df.game_id.unique()[0])
     calc_team_advanced_stats(game_df['season'].unique()[0], engine)
-    # TODO Calculate RAPM plus any other advanced
-    # TODO stats I happen to find for teams and players
+    # TODO Calculate RAPM
 
 if __name__ == '__main__':
     main()
