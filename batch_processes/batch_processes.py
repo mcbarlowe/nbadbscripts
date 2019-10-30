@@ -15,6 +15,47 @@ import datetime
 import time
 import player_advanced_stats as pas
 
+def parse_player_details(game_df, engine):
+    '''
+    function to deterimine if the players details need to be added to the
+    database
+    Inputs:
+    game_df  - pandas dataframe of play by play
+    engine  - SQL ALchemy Engine
+
+    Outputs:
+    None
+    '''
+    sql = """select player_id from nba.player_details"""
+    data = engine.connect().execute(sql)
+    player_ids = [row[0] for row in data]
+    user_agent = {'User-agent': 'Mozilla/5.0'}
+    players = list(set(list(game_df['home_player_1_id'].unique()) +
+                   list(game_df['home_player_2_id'].unique()) +
+                   list(game_df['home_player_3_id'].unique()) +
+                   list(game_df['home_player_4_id'].unique()) +
+                   list(game_df['home_player_5_id'].unique()) +
+                   list(game_df['away_player_1_id'].unique()) +
+                   list(game_df['away_player_2_id'].unique()) +
+                   list(game_df['away_player_3_id'].unique()) +
+                   list(game_df['away_player_4_id'].unique()) +
+                   list(game_df['away_player_5_id'].unique())))
+    for p in players:
+        if p not in player_ids:
+            url = f'https://stats.nba.com/stats/commonplayerinfo?LeagueID=&PlayerID={p}'
+            info = requests.get(url, headers=user_agent).json()
+            headers = list(map(str.lower, info['resultSets'][0]['headers']))
+            player = info['resultSets'][0]['rowSet'][0]
+            player_dict = {}
+            for play, head in zip(player, headers):
+                player_dict[head] = [play]
+            print(f"Inserting {player_dict['display_first_last']} into player database")
+            player_df = pd.DataFrame.from_dict(player_dict)
+            player_df = player_df.rename(columns={'person_id': 'player_id', 'season_exp': 'season_experience',
+                              'jersey': 'jersey_number'})
+            player_df.to_sql('player_details', engine, schema='nba', method='multi',
+                             if_exists='append', index=False)
+
 def parse_player_shots(game_df, engine):
     '''
     Inputs:
@@ -62,6 +103,7 @@ def parse_player_shots(game_df, engine):
 
 def calc_team_advanced_stats(season, engine):
 
+    engine.connect().execute(f'DELETE from nba.team_advanced_stats where season = {season};')
     teams_df = pd.read_sql_query('select tbg.*, tp.possessions from nba.teambygamestats tbg join nba.team_possessions tp '
                              f'on tp.game_id = tbg.game_id and tp.team_id = tbg.team_id where season={season};',
                              engine)
@@ -111,8 +153,8 @@ def calc_player_advanced_stats(season, engine):
     '''
 
     #delete old values
-    #engine.connect().execute(f'DELETE from nba.player_advanced_stats where season = {season};')
-    #engine.connect().execute(f'DELETE from nba.team_advanced_stats where season = {season};')
+    engine.connect().execute(f'DELETE from nba.player_advanced_stats where season = {season};')
+    engine.connect().execute(f'DELETE from nba.team_advanced_stats where season = {season};')
     player_possessions = pd.read_sql_query(pas.player_possession_query.format(season=season), engine)
     plus_minus_df = pd.read_sql_query(pas.plus_minus_sql.format(season=season), engine)
     pm_df = plus_minus_df[~plus_minus_df.isna()]
@@ -413,7 +455,7 @@ def main():
     # TODO uncomment this when testing is done
     # get the game ids of the games played yesterday
     #yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
-    yesterday = datetime.datetime.now() - datetime.timedelta(days=7)
+    yesterday = datetime.datetime.now() - datetime.timedelta(days=8)
     games = get_game_ids(yesterday)
     #date = '2019-04-04'
     #games_api = ('https://stats.nba.com/stats/scoreboard?'
@@ -447,6 +489,7 @@ def main():
                                   'away_player_1_id': int, 'away_player_3_id': int,
                                   'away_player_4_id': int, 'away_player_5_id': int})
         game_df.drop(['video_available_flag'], axis=1, inplace=True)
+        '''
         try:
             game_df.to_sql('pbp', engine, schema='nba',
                            if_exists='append', index=False, method='multi')
@@ -476,13 +519,19 @@ def main():
                      game_df.game_id.unique()[0])
         parse_player_shots(game_df, engine)
         # TODO parse possessions from each game for the RAPM calculation
+        # TODO parse player details if player not in the database
+        '''
+        parse_player_details(game_df, engine)
 
+
+    '''
     logging.info("Inserting player advanced stats data for %s into nba.teambygamestats",
                  game_df.game_id.unique()[0])
     calc_player_advanced_stats(game_df['season'].unique()[0], engine)
     logging.info("Inserting team advanced stats data for %s into nba.teambygamestats",
                  game_df.game_id.unique()[0])
     calc_team_advanced_stats(game_df['season'].unique()[0], engine)
+    '''
     # TODO Calculate RAPM
 
 if __name__ == '__main__':
