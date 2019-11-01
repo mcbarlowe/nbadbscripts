@@ -56,6 +56,7 @@ def one_year_team_rapm_calc(season, engine):
     calculate team one year rapm values
     '''
 
+    engine.connect().execute(f'DELETE from nba.team_single_year_rapm where season = {season};')
     # pull shifts from table
     teams_df = pd.read_sql_query('select tbg.*, poss.possessions from nba.teambygamestats tbg join nba.team_possessions poss on '
                                  f'poss.game_id = tbg.game_id and poss.team_id = tbg.team_id where tbg.season = {season};', engine)
@@ -83,9 +84,6 @@ def one_year_team_rapm_calc(season, engine):
     coef_defensive_array = np.transpose(model.coef_[:, len(teams):-1])
 
     # concatenate the offensive and defensive values with the playey ids into a mx3 matrix
-    print(team_arr.shape)
-    print(coef_offensive_array.shape)
-    print(coef_defensive_array.shape)
     team_id_with_coef = np.concatenate([team_arr, coef_offensive_array, coef_defensive_array], axis=1)
     # build a dataframe from our matrix
     teams_coef = pd.DataFrame(team_id_with_coef)
@@ -104,8 +102,6 @@ def one_year_team_rapm_calc(season, engine):
     # add the intercept for reference
     teams_coef['{0}_intercept'.format(name)] = intercept[0]
 
-    print(f'This is the intercept of the model: {intercept}')
-    print(teams_coef.head())
     team_df = pd.read_sql_query(f'select * from nba.team_details;', engine)
 
     results_df = teams_coef.merge(team_df[['team_id', 'abbreviation']], on='team_id')
@@ -115,7 +111,6 @@ def one_year_team_rapm_calc(season, engine):
     results_df['key_col'] = results_df['team_id'].astype(str) + results_df['season'].astype(str)
     results_df.to_sql('team_single_year_rapm', engine, schema='nba',
                        if_exists='append', index=False, method='multi')
-    print(results_df.head())
 
 def one_year_rapm_calc(season, sa_engine):
     '''
@@ -123,6 +118,7 @@ def one_year_rapm_calc(season, sa_engine):
     season given.
     '''
 
+    #sa_engine.connect().execute(f'DELETE from nba.player_single_year_rapm where season = {season};')
     # pull shifts from table
     shifts_df = pd.read_sql_query(f'select * from nba.rapm_shifts where season = {season};', sa_engine)
 
@@ -166,9 +162,6 @@ def one_year_rapm_calc(season, sa_engine):
     coef_defensive_array = np.transpose(model.coef_[:, len(players):-1])
 
     # concatenate the offensive and defensive values with the playey ids into a mx3 matrix
-    print(player_arr.shape)
-    print(coef_offensive_array.shape)
-    print(coef_defensive_array.shape)
     player_id_with_coef = np.concatenate([player_arr, coef_offensive_array, coef_defensive_array], axis=1)
     # build a dataframe from our matrix
     players_coef = pd.DataFrame(player_id_with_coef)
@@ -187,8 +180,6 @@ def one_year_rapm_calc(season, sa_engine):
     # add the intercept for reference
     players_coef['{0}__intercept'.format(name)] = intercept[0]
 
-    print(f'This is the intercept of the model: {intercept}')
-    print(players_coef.head())
     player_df = pd.read_sql_query(f'select * from nba.player_details;', sa_engine)
 
     results_df = players_coef.merge(player_df[['player_id', 'display_first_last']], on='player_id')
@@ -220,7 +211,9 @@ def multi_year_rapm_calc(seasons, sa_engine):
     # pull shifts from table
     shifts_df = pd.read_sql_query(f'select * from nba.rapm_shifts where season in ({",".join(seasons)});', sa_engine)
 
-    #shifts_df = shifts_df[shifts_df.possessions != 0]
+    #delete old data
+    sa_engine.connect().execute(f'DELETE from nba.player_multi_year_rapm where season = "{str(min(seasons))}-{str(max(seasons))[2:]}";')
+
 
     # pull out unique player ids
     #shifts_df = pd.read_csv('possessions_data.csv')
@@ -260,9 +253,6 @@ def multi_year_rapm_calc(seasons, sa_engine):
     coef_defensive_array = np.transpose(model.coef_[:, len(players):-1])
 
     # concatenate the offensive and defensive values with the playey ids into a mx3 matrix
-    print(player_arr.shape)
-    print(coef_offensive_array.shape)
-    print(coef_defensive_array.shape)
     player_id_with_coef = np.concatenate([player_arr, coef_offensive_array, coef_defensive_array], axis=1)
     # build a dataframe from our matrix
     players_coef = pd.DataFrame(player_id_with_coef)
@@ -281,8 +271,6 @@ def multi_year_rapm_calc(seasons, sa_engine):
     # add the intercept for reference
     players_coef['{0}__intercept'.format(name)] = intercept[0]
 
-    print(f'This is the intercept of the model: {intercept}')
-    print(players_coef.head())
     player_df = pd.read_sql_query(f'select * from nba.player_details;', sa_engine)
 
     results_df = players_coef.merge(player_df[['player_id', 'display_first_last']], on='player_id')

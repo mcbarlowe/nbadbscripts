@@ -14,6 +14,8 @@ import sqlqueries
 import datetime
 import time
 import player_advanced_stats as pas
+import calc_game_shifts as cgs
+from rapm_calculation import one_year_team_rapm_calc, multi_year_rapm_calc, one_year_rapm_calc
 
 def parse_player_details(game_df, engine):
     '''
@@ -409,6 +411,33 @@ def calc_possessions(game_df, engine):
     team_possession_df.to_sql('team_possessions', engine, schema='nba',
                          if_exists='append', index=False, method='multi')
 
+
+def parse_rapm_possessions(game_df, engine):
+    '''
+    funciton to parse possessions for RAPM calculation
+    Inputs:
+    game_df  - pandas dataframe of play by play
+    engine  - SQL ALchemy Engine
+
+    Outputs:
+    None
+    '''
+    game_df = cgs.calc_possessions(game_df)
+    points_by_second = game_df.groupby(['game_id', 'seconds_elapsed'])['points_made'].sum().reset_index()
+    poss_index = game_df[(game_df.home_possession == 1) | (game_df.away_possession == 1)].index
+    shift_dfs = []
+    past_index = 0
+    for i in poss_index:
+        shift_dfs.append(game_df.iloc[past_index+1: i+1, :].reset_index())
+        past_index = i
+    possession = [x.merge(points_by_second, on=['game_id', 'seconds_elapsed']) for x in shift_dfs]
+    poss_df = pd.concat(cgs.parse_possessions(possession))
+    poss_df.to_sql('rapm_shifts', engine, schema='nba',
+                   if_exists='append', index=False, method='multi')
+
+
+
+
 def get_game_ids(date):
     '''
     This function gets the game ids of games returned from the api
@@ -489,7 +518,6 @@ def main():
                                   'away_player_1_id': int, 'away_player_3_id': int,
                                   'away_player_4_id': int, 'away_player_5_id': int})
         game_df.drop(['video_available_flag'], axis=1, inplace=True)
-        '''
         try:
             game_df.to_sql('pbp', engine, schema='nba',
                            if_exists='append', index=False, method='multi')
@@ -518,21 +546,32 @@ def main():
         logging.info("Inserting shot data for %s into nba.shot_locations",
                      game_df.game_id.unique()[0])
         parse_player_shots(game_df, engine)
-        # TODO parse possessions from each game for the RAPM calculation
         # TODO parse player details if player not in the database
-        '''
+        logging.info("parsing new player details for %s into nba.player_details",
+                     game_df.game_id.unique()[0])
         parse_player_details(game_df, engine)
+        logging.info("parsing rapm_possessions for %s and inserting into nba.rapm_shifts",
+                     game_df.game_id.unique()[0])
+        parse_rapm_possessions(game_df, engine)
 
 
-    '''
     logging.info("Inserting player advanced stats data for %s into nba.teambygamestats",
-                 game_df.game_id.unique()[0])
+                 game_df.season.unique()[0])
     calc_player_advanced_stats(game_df['season'].unique()[0], engine)
     logging.info("Inserting team advanced stats data for %s into nba.teambygamestats",
-                 game_df.game_id.unique()[0])
+                 game_df.season.unique()[0])
     calc_team_advanced_stats(game_df['season'].unique()[0], engine)
-    '''
-    # TODO Calculate RAPM
+    logging.info("Calculating one year rapm stats for %s",
+                 game_df.season.unique()[0])
+    one_year_team_rapm_calc(game_df['season'].unique()[0], engine)
+    one_year_rapm_calc(game_df['season'].unique()[0], engine)
+    multi_seasons = [game_df['season'].unique()[0],
+                     game_df['season'].unique()[0] - 1,
+                     game_df['season'].unique()[0] - 2]
+    logging.info("Calculating multi year rapm")
+    multi_year_rapm_calc(multi_seasons, engine)
+
+
 
 if __name__ == '__main__':
     main()
