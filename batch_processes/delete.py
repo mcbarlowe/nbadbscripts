@@ -11,5 +11,5 @@ engine.connect().execute(f'DELETE from nba.team_possessions where game_id > 2190
 engine.connect().execute(f'DELETE from nba.shot_locations where game_id > 21900000;')
 engine.connect().execute(f'DELETE from nba.team_advanced_stats where season = {season};')
 engine.connect().execute(f'DELETE from nba.team_single_year_rapm where season = 2020;')
-#engine.connect().execute(f'DELETE from nba.team_single_year_rapm where season = 2020};')
+engine.connect().execute(f'DELETE from nba.player_single_year_rapm where season = 2020;')
 engine.connect().execute("DELETE from nba.player_multi_year_rapm where season = '2018-20';")

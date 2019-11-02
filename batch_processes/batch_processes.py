@@ -16,6 +16,7 @@ import time
 import player_advanced_stats as pas
 import calc_game_shifts as cgs
 from rapm_calculation import one_year_team_rapm_calc, multi_year_rapm_calc, one_year_rapm_calc
+import random
 
 def parse_player_details(game_df, engine):
     '''
@@ -470,12 +471,12 @@ def get_player_details(players, engine):
     #url = f'https://stats.nba.com/stats/commonplayerinfo?LeagueID=&PlayerID={p}'
 
     pass
-def main():
+def main(days_back):
     '''
     Main function to run to scrape games daily
     '''
 
-    engine = create_engine(os.environ['NBA_CONNECT'])
+    engine = create_engine(os.environ['NBA_CONNECT_DEV'])
 
     # Logging stuff
     logging.basicConfig(level=logging.INFO, filename='batchprocess.logs',
@@ -484,7 +485,7 @@ def main():
     # TODO uncomment this when testing is done
     # get the game ids of the games played yesterday
     #yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
-    yesterday = datetime.datetime.now() - datetime.timedelta(days=8)
+    yesterday = datetime.datetime.now() - datetime.timedelta(days=days_back)
     games = get_game_ids(yesterday)
     #date = '2019-04-04'
     #games_api = ('https://stats.nba.com/stats/scoreboard?'
@@ -507,7 +508,7 @@ def main():
                               game_df['game_date'].astype(str) +
                               game_df['home_team_abbrev'] + game_df['away_team_abbrev'] +
                               game_df['seconds_elapsed'].astype(str) +
-                              game_df.index.astype(str))
+                              game_df.index.astype(str) + str(round(random.random() * 10, 0)))
         game_df = game_df.astype({'is_d_rebound': bool, 'is_o_rebound': bool,
                                   'is_turnover': bool, 'is_steal': bool,
                                   'is_putback': bool, 'is_block': bool,
@@ -574,4 +575,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+        main(1)

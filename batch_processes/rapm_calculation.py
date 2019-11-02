@@ -212,7 +212,7 @@ def multi_year_rapm_calc(seasons, sa_engine):
     shifts_df = pd.read_sql_query(f'select * from nba.rapm_shifts where season in ({",".join(seasons)});', sa_engine)
 
     #delete old data
-    sa_engine.connect().execute(f'DELETE from nba.player_multi_year_rapm where season = "{str(min(seasons))}-{str(max(seasons))[2:]}";')
+    sa_engine.connect().execute(f"DELETE from nba.player_multi_year_rapm where season = '{str(min(seasons))}-{str(max(seasons))[2:]}';")
 
 
     # pull out unique player ids
