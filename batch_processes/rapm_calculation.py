@@ -118,7 +118,7 @@ def one_year_rapm_calc(season, sa_engine):
     season given.
     '''
 
-    #sa_engine.connect().execute(f'DELETE from nba.player_single_year_rapm where season = {season};')
+    sa_engine.connect().execute(f'DELETE from nba.player_single_year_rapm where season = {season};')
     # pull shifts from table
     shifts_df = pd.read_sql_query(f'select * from nba.rapm_shifts where season = {season};', sa_engine)
 
