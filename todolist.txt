@@ -1,5 +1,0 @@
-1. Write script to create all tables for the nba database
-DONE Write triggers to calculate new data each time data is inserted to the play by play table
-3. Write scripts to cast all the data to the types I want it to be in the tables from the pandas dataframe. Maybe create data dictionaries for each of the tables
-4. write script to calculate team data with each pbp insert
-5. create an nba dev database to test shit out on
