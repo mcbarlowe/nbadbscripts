@@ -3,6 +3,7 @@ This script runs the batch processes for the NBA database
 """
 # import datetime
 import math
+import argparse
 import os
 import logging
 import nba_scraper.nba_scraper as ns
@@ -962,7 +963,7 @@ def parse_rapm_possessions(game_df, engine):
     )
 
 
-def get_game_ids(date):
+def get_game_ids(days_back):
     """
     This function gets the game ids of games returned from the api
     endpoint
@@ -974,9 +975,11 @@ def get_game_ids(date):
     game_ids - list of game ids
     """
 
+    yesterday = datetime.datetime.now() - datetime.timedelta(days=days_back)
+
     games_api = (
         "https://stats.nba.com/stats/scoreboard?"
-        f'DayOffset=0&GameDate={date.strftime("%Y-%m-%d")}&LeagueID=00'
+        f'DayOffset=0&GameDate={yesterday.strftime("%Y-%m-%d")}&LeagueID=00'
     )
     print(games_api)
     user_agent = {
@@ -993,28 +996,160 @@ def get_game_ids(date):
 
     games = scoreboard["resultSets"][0]["rowSet"]
     game_ids = [game[2][2:] for game in games]
+    if game_ids == []:
+        logging.info("No games on %s", yesterday)
+        return []
+
     return game_ids
 
 
-def get_player_details(players, engine):
+def calc_rapms(season, engine):
     """
-    this function will check and see if the players in the play by play dataframe
-    are in the player_details table and if not will hit the nba player api get
-    them and insert them into the database
+    function that runs the rapm calculations
     """
-    # TODO this needs to be finished at some point
-    # for player in players:
-    # url = f'https://stats.nba.com/stats/commonplayerinfo?LeagueID=&PlayerID={p}'
+    logging.info(
+        "Inserting player advanced stats data for %s into nba.teambygamestats", season,
+    )
+    calc_player_advanced_stats(season, engine)
+    logging.info(
+        "Inserting team advanced stats data for %s into nba.teambygamestats", season,
+    )
+    calc_team_advanced_stats(season, engine)
+    logging.info("Calculating one year rapm stats for %s", season)
+    one_year_team_rapm_calc(season, engine)
+    one_year_rapm_calc(season, engine)
+    if season < 2002:
+        return
+    else:
+        multi_seasons = [
+            season,
+            season - 1,
+            season - 2,
+        ]
+        logging.info("Calculating multi year rapm")
+        multi_year_rapm_calc(multi_seasons, engine)
 
-    pass
+
+def game_df_import(game_df, engine):
+    """
+    this funciton takes a nba pbp data frame prepares it for insert
+    into the database and calculates the stats for team and player along
+    with possesions for the game
+    """
+    game_df.columns = list(map(str.lower, game_df.columns))
+    if game_df["game_id"].dtype == "O":
+        game_df["game_id"] = game_df["game_id"].str.slice(start=2)
+    game_df["key_col"] = (
+        game_df["game_id"].astype(str)
+        + game_df["eventnum"].astype(str)
+        + game_df["game_date"].astype(str)
+        + game_df["home_team_abbrev"]
+        + game_df["away_team_abbrev"]
+        + game_df["seconds_elapsed"].astype(str)
+        + game_df.index.astype(str)
+        + str(round(random.random() * 10, 0))
+    )
+    game_df = game_df.astype(
+        {
+            "season": int,
+            "is_d_rebound": bool,
+            "is_o_rebound": bool,
+            "is_turnover": bool,
+            "is_steal": bool,
+            "is_putback": bool,
+            "is_block": bool,
+            "is_three": bool,
+            "shot_made": bool,
+            "home_player_1_id": int,
+            "home_player_2_id": int,
+            "home_player_3_id": int,
+            "home_player_4_id": int,
+            "home_player_5_id": int,
+            "away_player_2_id": int,
+            "away_player_1_id": int,
+            "away_player_3_id": int,
+            "away_player_4_id": int,
+            "away_player_5_id": int,
+        }
+    )
+    game_df.drop(["video_available_flag"], axis=1, inplace=True)
+    try:
+        game_df.to_sql(
+            "pbp",
+            engine,
+            schema="nba",
+            if_exists="append",
+            index=False,
+            method="multi",
+        )
+        logging.info(
+            "Inserting play by play for %s into nba.playerbygamestats",
+            game_df.game_id.unique()[0],
+        )
+    except Exception as e:
+        print(e)
+        logging.error(
+            "Play by play for %s failed to insert into nba.pbp",
+            game_df.game_id.unique()[0],
+        )
+
+    # TODO rewrite this sql query i use for this into a python funciton
+    # TODO to make debuggin easier in the future 9-2-2019
+    logging.info(
+        "Inserting player boxscore for %s into nba.playerbygamestats",
+        game_df.game_id.unique()[0],
+    )
+    engine.connect().execute(
+        sqlqueries.pbgs_calc.format(game_id=game_df.game_id.unique()[0])
+    )
+
+    logging.info(
+        "Inserting team boxscore for %s into nba.teambygamestats",
+        game_df.game_id.unique()[0],
+    )
+    calc_team_stats(game_df, engine)
+
+    logging.info(
+        "Inserting possession data for %s into nba.team_possesions and nba.player_possesions ",
+        game_df.game_id.unique()[0],
+    )
+    calc_possessions(game_df, engine)
+    logging.info(
+        "Inserting shot data for %s into nba.shot_locations",
+        game_df.game_id.unique()[0],
+    )
+    parse_player_shots(game_df, engine)
+    logging.info(
+        "parsing new player details for %s into nba.player_details",
+        game_df.game_id.unique()[0],
+    )
+    parse_player_details(game_df, engine)
+    logging.info(
+        "parsing rapm_possessions for %s and inserting into nba.rapm_shifts",
+        game_df.game_id.unique()[0],
+    )
+    parse_rapm_possessions(game_df, engine)
 
 
-def main(days_back):
+def main():
     """
     Main function to run to scrape games daily
     """
 
-    engine = create_engine(os.environ["NBA_CONNECT_DEV"])
+    parser = argparse.ArgumentParser(description="Process some integers.")
+    parser.add_argument(
+        "--input",
+        type=str,
+        help="tell whether the game_dfs should be gotten from scraping or file path. Options: scrape or file_path",
+    )
+    parser.add_argument(
+        "--path", type=str, help="file path to pull files to convert to dataframes",
+    )
+    parser.add_argument("--db", help="days back to scrape games", type=int, default=1)
+
+    args = parser.parse_args()
+
+    engine = create_engine(os.environ["NBA_CONNECT"])
 
     # Logging stuff
     logging.basicConfig(
@@ -1023,145 +1158,37 @@ def main(days_back):
         format="%(asctime)s - %(levelname)s: %(message)s",
     )
 
-    # TODO uncomment this when testing is done
-    # get the game ids of the games played yesterday
-    # yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
-    yesterday = datetime.datetime.now() - datetime.timedelta(days=days_back)
-    games = get_game_ids(yesterday)
-    print(games)
-    # date = '2019-04-04'
-    # games_api = ('https://stats.nba.com/stats/scoreboard?'
-    #             f'DayOffset=0&GameDate={date}&LeagueID=00')
-
-    if games == []:
-        logging.info("No games on %s", yesterday)
-        return
     # creates a list of play by play dataframes to process
     games_df_list = []
-    for game in games:
-        try:
+    # only use this if scraping games_
+    if args.input == "scrape":
+        games = get_game_ids(args.db)
+        if games == []:
+            return
+        for game in games:
             games_df_list.append(ns.scrape_game([game]))
             time.sleep(1)
-        except IndexError:
-            logging.error("Could not scrape game %s", game)
+    else:
+        for dirpath, subdirs, files in os.walk(args.path):
+            for x in files:
+                df = pd.read_csv(dirpath + x)
+                # print(str(df["game_id"].unique()[0])[1:3])
+                if str(df["game_id"])[1:3] == "99":
+                    df["season"] = 2000
+                elif str(df["game_id"])[1:3] == "00":
+                    df["season"] = 2001
+                else:
+                    df.loc[
+                        :, ("season")
+                    ] = f"20{int(str(df['game_id'].unique()[0])[1:3])+1}"
+                games_df_list.append(df)
 
     for game_df in games_df_list:
-        game_df.columns = list(map(str.lower, game_df.columns))
-        game_df["game_id"] = game_df["game_id"].str.slice(start=2)
-        game_df["key_col"] = (
-            game_df["game_id"].astype(str)
-            + game_df["eventnum"].astype(str)
-            + game_df["game_date"].astype(str)
-            + game_df["home_team_abbrev"]
-            + game_df["away_team_abbrev"]
-            + game_df["seconds_elapsed"].astype(str)
-            + game_df.index.astype(str)
-            + str(round(random.random() * 10, 0))
-        )
-        game_df = game_df.astype(
-            {
-                "season": int,
-                "is_d_rebound": bool,
-                "is_o_rebound": bool,
-                "is_turnover": bool,
-                "is_steal": bool,
-                "is_putback": bool,
-                "is_block": bool,
-                "is_three": bool,
-                "shot_made": bool,
-                "home_player_1_id": int,
-                "home_player_2_id": int,
-                "home_player_3_id": int,
-                "home_player_4_id": int,
-                "home_player_5_id": int,
-                "away_player_2_id": int,
-                "away_player_1_id": int,
-                "away_player_3_id": int,
-                "away_player_4_id": int,
-                "away_player_5_id": int,
-            }
-        )
-        game_df.drop(["video_available_flag"], axis=1, inplace=True)
-        try:
-            game_df.to_sql(
-                "pbp",
-                engine,
-                schema="nba",
-                if_exists="append",
-                index=False,
-                method="multi",
-            )
-            logging.info(
-                "Inserting play by play for %s into nba.playerbygamestats",
-                game_df.game_id.unique()[0],
-            )
-        except Exception as e:
-            print(e)
-            logging.error(
-                "Play by play for %s failed to insert into nba.pbp",
-                game_df.game_id.unique()[0],
-            )
+        print(game_df.head())
+        game_df_import(game_df, engine)
 
-        # TODO rewrite this sql query i use for this into a python funciton
-        # TODO to make debuggin easier in the future 9-2-2019
-        logging.info(
-            "Inserting player boxscore for %s into nba.playerbygamestats",
-            game_df.game_id.unique()[0],
-        )
-        engine.connect().execute(
-            sqlqueries.pbgs_calc.format(game_id=game_df.game_id.unique()[0])
-        )
-
-        logging.info(
-            "Inserting team boxscore for %s into nba.teambygamestats",
-            game_df.game_id.unique()[0],
-        )
-        calc_team_stats(game_df, engine)
-
-        logging.info(
-            "Inserting possession data for %s into nba.team_possesions and nba.player_possesions ",
-            game_df.game_id.unique()[0],
-        )
-        calc_possessions(game_df, engine)
-        # TODO pull in shots data for game and insert into database
-        logging.info(
-            "Inserting shot data for %s into nba.shot_locations",
-            game_df.game_id.unique()[0],
-        )
-        parse_player_shots(game_df, engine)
-        # TODO parse player details if player not in the database
-        logging.info(
-            "parsing new player details for %s into nba.player_details",
-            game_df.game_id.unique()[0],
-        )
-        parse_player_details(game_df, engine)
-        logging.info(
-            "parsing rapm_possessions for %s and inserting into nba.rapm_shifts",
-            game_df.game_id.unique()[0],
-        )
-        parse_rapm_possessions(game_df, engine)
-
-    logging.info(
-        "Inserting player advanced stats data for %s into nba.teambygamestats",
-        game_df.season.unique()[0],
-    )
-    calc_player_advanced_stats(game_df["season"].unique()[0], engine)
-    logging.info(
-        "Inserting team advanced stats data for %s into nba.teambygamestats",
-        game_df.season.unique()[0],
-    )
-    calc_team_advanced_stats(game_df["season"].unique()[0], engine)
-    logging.info("Calculating one year rapm stats for %s", game_df.season.unique()[0])
-    one_year_team_rapm_calc(game_df["season"].unique()[0], engine)
-    one_year_rapm_calc(game_df["season"].unique()[0], engine)
-    multi_seasons = [
-        game_df["season"].unique()[0],
-        game_df["season"].unique()[0] - 1,
-        game_df["season"].unique()[0] - 2,
-    ]
-    logging.info("Calculating multi year rapm")
-    multi_year_rapm_calc(multi_seasons, engine)
+    calc_rapms(game_df["season"].unique()[0], engine)
 
 
 if __name__ == "__main__":
-    main(1)
+    main()
