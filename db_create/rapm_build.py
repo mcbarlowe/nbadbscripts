@@ -53,7 +53,7 @@ for s in seasons:
     else:
         print(f"calculating {s.season} multi season player rapm")
         multi_pbg_sql = f"select * from nba.player_rapm_shifts where season in ({s.season}, {s.season - 1}, {s.season-2})"
-        multi_pbg_df = pd.read_sql(pbg_sql, engine)
+        multi_pbg_df = pd.read_sql(multi_pbg_sql, engine)
 
         pbg_rapm_results = npar.PlayerTotals.player_rapm_results(multi_pbg_df)
 
