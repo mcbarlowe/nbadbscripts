@@ -23,3 +23,18 @@ def test_PlayerDetails_creation():
     assert player1.leagueid == ""
     assert player2.leagueid == ""
     assert player3.leagueid == 1
+
+
+def test_get_player_data():
+    """
+    function to test if the function that returns the player data is returning
+    accurate data
+    """
+    player1 = PlayerDetails(playerid=907)
+    player2 = PlayerDetails(playerid=779)
+
+    player1_details = player1.get_player_data()
+    player2_details = player2.get_player_data()
+    print(player1_details.columns)
+    assert player1_details["playercode"].values[0] == "malik_sealy"
+    assert player2_details["playercode"].values[0] == "glen_rice"
