@@ -24,6 +24,7 @@ player_ids = [row.player_id for row in data]
 player_ids = set(player_ids)
 
 
+# TODO rewrite this to use PlayerDetails api model 2020-04-05
 def parse_player_details(game_df, engine, player_ids):
     """
     function to deterimine if the players details need to be added to the
