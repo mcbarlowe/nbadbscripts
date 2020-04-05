@@ -8,13 +8,13 @@ class PlayerDetails(BaseApi):
     This class models the nba player detail api endpoint
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, playerid, **kwargs):
         self.user_agent = BaseApi.user_agent
-        self.playerid = kwargs["playerid"]
+        self.playerid = playerid
         self.leagueid = kwargs.get("leagueid", "")
         self.url = f"{BaseApi.base_url}stats/commonplayerinfo?LeagueID={self.leagueid}&PlayerID={self.playerid}"
 
-    def get_player_data(self):
+    def response(self):
         """
         function to return the relevant player data from the nba player
         detail API
