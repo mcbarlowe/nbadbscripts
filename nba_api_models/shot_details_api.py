@@ -43,10 +43,30 @@ class ShotDetails(BaseApi):
         self.vs_division = kwargs.get("context_filter", "")
         self.url = (
             f"https://stats.nba.com/stats/shotchartdetail?AheadBehind={self.ahead_behind}"
-            f"&ClutchTime={self.clutch_time}&ContextFilter={self.context_filter}&ContextMeasure={self.context_measure}A&DateFrom={self.date_from}"
-            f"&DateTo={self.date_to}&EndPeriod={self.end_period}&EndRange={self.end_range}&GameID={self.leagueid}{self.game_id}&GameSegment={self.game_segment}&LastNGames={self.last_n_games}"
-            f"&LeagueID={self.leagueid}&Location{self.location}=&Month={self.month}&OpponentTeamID={self.opponent_team_id}&Outcome={self.outcome}&Period={self.period}"
-            f"&PlayerID={self.player_id}&PlayerPosition={self.player_position}&PointDiff={self.point_diff}&Position={self.position}&RangeType={self.range_type}"
-            f"&RookieYear={self.rookie_year}&Season={self.season}&SeasonSegment={self.season_segment}&SeasonType={self.season_type}"
-            f"&StartPeriod={self.start_period}&StartRange={self.start_range}&TeamID={self.team_id}&VsConference={self.vs_conference}&VsDivision={self.vs_division}"
+            f"&ClutchTime={self.clutch_time}&ContextFilter={self.context_filter}"
+            f"&ContextMeasure={self.context_measure}A&DateFrom={self.date_from}"
+            f"&DateTo={self.date_to}&EndPeriod={self.end_period}&EndRange={self.end_range}"
+            f"&GameID={self.leagueid}{self.game_id}&GameSegment={self.game_segment}"
+            f"&LastNGames={self.last_n_games}&LeagueID={self.leagueid}&Location{self.location}"
+            f"=&Month={self.month}&OpponentTeamID={self.opponent_team_id}"
+            f"&Outcome={self.outcome}&Period={self.period}&PlayerID={self.player_id}"
+            f"&PlayerPosition={self.player_position}&PointDiff={self.point_diff}"
+            f"&Position={self.position}&RangeType={self.range_type}&RookieYear={self.rookie_year}"
+            f"&Season={self.season}&SeasonSegment={self.season_segment}&SeasonType={self.season_type}"
+            f"&StartPeriod={self.start_period}&StartRange={self.start_range}"
+            f"&TeamID={self.team_id}&VsConference={self.vs_conference}&VsDivision={self.vs_division}"
         )
+
+    def response(self):
+        '''
+        method to get the response of the API endpoint
+        '''
+        shots = requests.get(self.url, headers=self.user_agent).json()
+        columns = shots["resultSets"][0]["headers"]
+        rows = shots["resultSets"][0]["rowSet"]
+        shots_df = pd.DataFrame(rows, columns=columns)
+        shots_df.columns = list(map(str.lower, shots_df.columns))
+        shots_df["game_id"] = shots_df["game_id"].str.slice(start=2).astype(int)
+
+        print(shots_df.head())
+        return shots_df

@@ -44,3 +44,18 @@ def test_ShotDetails_creation():
         "&RookieYear=&Season=&SeasonSegment=&SeasonType=Regular+Season"
         "&StartPeriod=&StartRange=&TeamID=0&VsConference=&VsDivision="
     )
+
+
+def test_ShotDetails_response():
+    """
+    test for the response method to make sure the data its pulling is correct
+    """
+
+    shot_detail = ShotDetails(21900001, 200768)
+    shot_detail_df = shot_detail.response()
+    assert shot_detail_df["player_name"].unique()[0] == "Kyle Lowry"
+    assert shot_detail_df["player_id"].unique()[0] == 200768
+    assert shot_detail_df["team_name"].unique()[0] == "Toronto Raptors"
+    assert shot_detail_df["team_id"].unique()[0] == 1610612761
+    assert shot_detail_df["htm"].unique()[0] == "TOR"
+    assert shot_detail_df["vtm"].unique()[0] == "NOP"
