@@ -11,66 +11,33 @@ import argparse
 import datetime
 import logging
 import time
+import pandas as pd
 import nba_scraper.nba_scraper as ns
 import nba_parser as npar
 from nba_api_models.scoreboard_api import ScoreBoard
 from nba_api_models.player_details import PlayerDetails
+from nba_api_models.shot_details_api import ShotDetails
 from sqlalchemy import create_engine
 
 
-def parse_shot_details(game_df, engine):
+def parse_shot_details(pbg_df, engine):
     """
     Inputs:
-    game_df  - pandas dataframe of play by play
+    pbg_df  - pandas dataframe of playerbygamestats
     engine  - SQL ALchemy Engine
 
     Outputs:
     None
     """
-    user_agent = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:72.0) Gecko/20100101 Firefox/72.0",
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "en-US,en;q=0.5",
-        "X-NewRelic-ID": "VQECWF5UChAHUlNTBwgBVw==",
-        "x-nba-stats-origin": "stats",
-        "x-nba-stats-token": "true",
-        "Connection": "keep-alive",
-        "Referer": "https://stats.nba.com/",
-    }
-    game_id = "00" + game_df["game_id"].astype(str).unique()[0]
     shots_df_list = []
-    players = list(
-        set(
-            list(game_df["home_player_1_id"].unique())
-            + list(game_df["home_player_2_id"].unique())
-            + list(game_df["home_player_3_id"].unique())
-            + list(game_df["home_player_4_id"].unique())
-            + list(game_df["home_player_5_id"].unique())
-            + list(game_df["away_player_1_id"].unique())
-            + list(game_df["away_player_2_id"].unique())
-            + list(game_df["away_player_3_id"].unique())
-            + list(game_df["away_player_4_id"].unique())
-            + list(game_df["away_player_5_id"].unique())
-        )
-    )
+    players = pbg_df["player_id"].unique()
+    game_id = pbg_df["game_id"].unique()[0][2:]
+
     for player in players:
-        url = (
-            "https://stats.nba.com/stats/shotchartdetail?AheadBehind="
-            "&ClutchTime=&ContextFilter=&ContextMeasure=FGA&DateFrom="
-            f"&DateTo=&EndPeriod=&EndRange=&GameID={game_id}&GameSegment=&LastNGames=0"
-            "&LeagueID=00&Location=&Month=0&OpponentTeamID=0&Outcome=&Period=0"
-            f"&PlayerID={player}&PlayerPosition=&PointDiff=&Position=&RangeType="
-            f"&RookieYear=&Season=&SeasonSegment=&SeasonType=Regular+Season"
-            "&StartPeriod=&StartRange=&TeamID=0&VsConference=&VsDivision="
-        )
-        shots = requests.get(url, headers=user_agent).json()
-        columns = shots["resultSets"][0]["headers"]
-        rows = shots["resultSets"][0]["rowSet"]
-        shots_df = pd.DataFrame(rows, columns=columns)
-        shots_df.columns = list(map(str.lower, shots_df.columns))
-        shots_df["game_id"] = shots_df["game_id"].str.slice(start=2).astype(int)
-        shots_df_list.append(shots_df)
-        time.sleep(5)
+        shot_details = ShotDetails(game_id, player)
+        shot_details_df = shot_details.response()
+        shots_df_list.append(shot_details_df)
+        time.sleep(1)
 
     total_shots = pd.concat(shots_df_list)
     total_shots["key_col"] = (
@@ -155,22 +122,72 @@ def main():
         return
     # creates a list of play by play dataframes to process
     games_df_list = []
-    for game in games:
+    for game in games[1:]:
         try:
             games_df_list.append(ns.scrape_game([game]))
             time.sleep(1)
         except IndexError:
             logging.error("Could not scrape game %s", game)
-    pbps = list(map(npar.Pbp, games_df_list))
+    pbps = list(map(npar.PbP, games_df_list))
 
     # method to calculate and insert teambygamestats,
     # playerbygamestats, player_rapm_shifts, shot details, and player details
     # if there are players not in the database
     for pbp in pbps:
+        print(pbp.df.game_id.unique())
         pbg = pbp.playerbygamestats()
+        pbp.df = pbp.df.astype(
+            {
+                "season": int,
+                "eventnum": int,
+                "eventmsgtype": int,
+                "eventmsgactiontype": int,
+                "period": int,
+                "person1type": float,
+                "player1_id": float,
+                "person2type": float,
+                "player2_id": float,
+                "person3type": float,
+                "player3_id": float,
+                "video_available_flag": int,
+                "home_team_id": int,
+                "away_team_id": int,
+                "is_block": int,
+                "seconds_elapsed": int,
+                "is_three": int,
+                "points_made": int,
+                "is_o_rebound": int,
+                "is_d_rebound": int,
+                "is_turnover": int,
+                "is_steal": int,
+                "is_putback": int,
+                "home_possession": int,
+                "away_possession": int,
+                "fgm": int,
+                "fga": int,
+                "tpm": int,
+                "tpa": int,
+                "ftm": int,
+                "fta": int,
+                "home_plus": int,
+                "home_minus": int,
+                "away_plus": int,
+                "away_minus": int,
+                "home_player_1_id": int,
+                "home_player_2_id": int,
+                "home_player_3_id": int,
+                "home_player_4_id": int,
+                "home_player_5_id": int,
+                "away_player_2_id": int,
+                "away_player_1_id": int,
+                "away_player_3_id": int,
+                "away_player_4_id": int,
+                "away_player_5_id": int,
+            },
+        )
+        pbp.df.drop(columns="shot_type_de", inplace=True)
         tbg = pbp.teambygamestats()
         rapm_shifts = pbp.rapm_possessions()
-        parse_player_details(pbg, engine, player_ids)
         pbp.df.to_sql(
             "pbp",
             con=engine,
@@ -203,9 +220,8 @@ def main():
             index=False,
             method="multi",
         )
-
-
-# TODO build method to get player shots for the database
+        parse_player_details(pbg, engine, player_ids)
+        parse_shot_details(pbg, engine)
 
 
 if __name__ == "__main__":

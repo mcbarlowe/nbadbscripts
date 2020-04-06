@@ -58,9 +58,9 @@ class ShotDetails(BaseApi):
         )
 
     def response(self):
-        '''
+        """
         method to get the response of the API endpoint
-        '''
+        """
         shots = requests.get(self.url, headers=self.user_agent).json()
         columns = shots["resultSets"][0]["headers"]
         rows = shots["resultSets"][0]["rowSet"]
@@ -68,5 +68,4 @@ class ShotDetails(BaseApi):
         shots_df.columns = list(map(str.lower, shots_df.columns))
         shots_df["game_id"] = shots_df["game_id"].str.slice(start=2).astype(int)
 
-        print(shots_df.head())
         return shots_df
