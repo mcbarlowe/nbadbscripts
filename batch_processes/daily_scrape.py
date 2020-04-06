@@ -122,7 +122,7 @@ def main():
         return
     # creates a list of play by play dataframes to process
     games_df_list = []
-    for game in games[1:]:
+    for game in games:
         try:
             games_df_list.append(ns.scrape_game([game]))
             time.sleep(1)
