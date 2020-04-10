@@ -122,12 +122,17 @@ def main():
         return
     # creates a list of play by play dataframes to process
     games_df_list = []
+    # TODO add code in here to filter out all star and playoff games or
+    # to add a gametype in the nba_parser 2020-04-06
     for game in games:
         try:
             games_df_list.append(ns.scrape_game([game]))
             time.sleep(1)
         except IndexError:
             logging.error("Could not scrape game %s", game)
+        except KeyError:
+            logging.error("Could not scrape game %s", game)
+
     pbps = list(map(npar.PbP, games_df_list))
 
     # method to calculate and insert teambygamestats,
