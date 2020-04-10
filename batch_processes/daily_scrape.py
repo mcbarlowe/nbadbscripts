@@ -2,8 +2,7 @@
 This will be the main method I run every day to get the games from yesterdays
 schedule, scrape them and then insert them into the database. I will then
 calculate RAPMS for single year team and player and multi season rapm for the
-current season. This will use my nba_scraper, nba_parser, and new API models
-I'm creating for the NBA api to streamline code
+current season in another script. This will use my nba_scraper, nba_parser, and new API models I'm creating for the NBA api to streamline code
 """
 
 import os
@@ -90,7 +89,7 @@ def main():
     # Logging stuff
     logging.basicConfig(
         level=logging.INFO,
-        filename="batchprocess.logs",
+        filename="dailyprocess.logs",
         format="%(asctime)s - %(levelname)s: %(message)s",
     )
 
