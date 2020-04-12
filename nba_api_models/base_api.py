@@ -9,4 +9,17 @@ class BaseApi:
         "Connection": "keep-alive",
         "Referer": "https://stats.nba.com/",
     }
-    base_url = 'https://stats.nba.com/'
+    base_url = "https://stats.nba.com/"
+
+    def build_parameters_dict(self):
+        """
+        function to build the dictionary of parameters to pass to the url
+        from the instance attributes
+        """
+        params_dict = {}
+        for key, value in vars(self).items():
+            if key in ["user_agent", "url"]:
+                continue
+            params_dict[key] = value
+
+        return params_dict

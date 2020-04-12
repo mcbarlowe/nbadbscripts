@@ -10,17 +10,24 @@ def test_PlayerDetails_creation():
     player2 = PlayerDetails(779)
     player3 = PlayerDetails(779, leagueid=1)
 
-    assert player1.playerid == 907
-    assert player2.playerid == 779
+    assert player1.PlayerID == 907
+    assert player2.PlayerID == 779
     assert player1.url == "https://stats.nba.com/stats/commonplayerinfo"
     assert player2.url == "https://stats.nba.com/stats/commonplayerinfo"
-    assert player1.url_parameters == {
-        "LeagueId": player1.leagueid,
-        "PlayerID": player1.playerid,
+    assert player1.LeagueID == ""
+    assert player2.LeagueID == ""
+    assert player3.LeagueID == 1
+
+
+def test_build_parameters_dict():
+
+    player1 = PlayerDetails(907)
+    url_parameters = player1.build_parameters_dict()
+
+    assert url_parameters == {
+        "LeagueID": player1.LeagueID,
+        "PlayerID": player1.PlayerID,
     }
-    assert player1.leagueid == ""
-    assert player2.leagueid == ""
-    assert player3.leagueid == 1
 
 
 def test_get_player_data():

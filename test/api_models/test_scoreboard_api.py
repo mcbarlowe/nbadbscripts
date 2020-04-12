@@ -9,13 +9,19 @@ def test_ScoreBoard_creation():
     """
     game_date = date(2020, 4, 4)
     score_board = ScoreBoard(game_date)
-    assert score_board.leagueid == "00"
-    assert score_board.day_offset == "0"
-    assert score_board.game_date == game_date
-    assert score_board.game_date_str == "2020-04-04"
+    assert score_board.LeagueID == "00"
+    assert score_board.DayOffset == "0"
+    assert score_board.GameDate == "2020-04-04"
     assert score_board.url == "https://stats.nba.com/stats/scoreboard"
-    assert score_board.url_parameters == {
-        "DayOffset": '0',
+
+
+def test_paramter_buid():
+
+    game_date = date(2020, 4, 4)
+    score_board = ScoreBoard(game_date)
+    url_parameters = score_board.build_parameters_dict()
+    assert url_parameters == {
+        "DayOffset": "0",
         "GameDate": "2020-04-04",
         "LeagueID": "00",
     }

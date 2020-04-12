@@ -10,17 +10,19 @@ class PlayerDetails(BaseApi):
 
     def __init__(self, playerid, **kwargs):
         self.user_agent = BaseApi.user_agent
-        self.playerid = playerid
-        self.leagueid = kwargs.get("leagueid", "")
+        self.PlayerID = playerid
+        self.LeagueID = kwargs.get("leagueid", "")
         self.url = f"{BaseApi.base_url}stats/commonplayerinfo"
-        self.url_parameters = {'LeagueId': self.leagueid, 'PlayerID': self.playerid}
 
     def response(self):
         """
         function to return the relevant player data from the nba player
         detail API
         """
-        info = requests.get(self.url, headers=self.user_agent, params=self.url_parameters).json()
+        url_parameters = self.build_parameters_dict()
+        info = requests.get(
+            self.url, headers=self.user_agent, params=url_parameters
+        ).json()
         headers = list(map(str.lower, info["resultSets"][0]["headers"]))
         player = info["resultSets"][0]["rowSet"][0]
         player_dict = {}
