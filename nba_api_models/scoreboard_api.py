@@ -13,10 +13,15 @@ class ScoreBoard(BaseApi):
         self.day_offset = kwargs.get("dayoffset", "0")
         self.game_date = game_date
         self.game_date_str = self.game_date.strftime("%Y-%m-%d")
-        self.url = f"{BaseApi.base_url}stats/scoreboard?DayOffset={self.day_offset}&GameDate={self.game_date_str}&LeagueID={self.leagueid}"
+        self.url = f"{BaseApi.base_url}stats/scoreboard"
+        self.url_parameters = {
+            "DayOffset": self.day_offset,
+            "GameDate": self.game_date_str,
+            "LeagueID": self.leagueid,
+        }
 
     def response(self):
-        res = requests.get(self.url, headers=self.user_agent).json()
+        res = requests.get(self.url, headers=self.user_agent, params=self.url_parameters).json()
         games = res["resultSets"][0]["rowSet"]
         game_ids = [int(game[2][2:]) for game in games]
         return game_ids
