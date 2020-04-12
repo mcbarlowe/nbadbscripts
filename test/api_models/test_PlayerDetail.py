@@ -12,14 +12,12 @@ def test_PlayerDetails_creation():
 
     assert player1.playerid == 907
     assert player2.playerid == 779
-    assert (
-        player1.url
-        == "https://stats.nba.com/stats/commonplayerinfo?LeagueID=&PlayerID=907"
-    )
-    assert (
-        player2.url
-        == "https://stats.nba.com/stats/commonplayerinfo?LeagueID=&PlayerID=779"
-    )
+    assert player1.url == "https://stats.nba.com/stats/commonplayerinfo"
+    assert player2.url == "https://stats.nba.com/stats/commonplayerinfo"
+    assert player1.url_parameters == {
+        "LeagueId": player1.leagueid,
+        "PlayerID": player1.playerid,
+    }
     assert player1.leagueid == ""
     assert player2.leagueid == ""
     assert player3.leagueid == 1
