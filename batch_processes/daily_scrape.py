@@ -89,7 +89,7 @@ def main():
     # Logging stuff
     logging.basicConfig(
         level=logging.INFO,
-        filename="dailyprocess.logs",
+        filename="daily_scrape.logs",
         format="%(asctime)s - %(levelname)s: %(message)s",
     )
 
