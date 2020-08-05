@@ -6,3 +6,6 @@ batchprocess.logs
 shotlocationscraping.ipynb untitled1.ipynb
 untitled1.ipynb
 untitled1.ipynb
+*.pyc
+daily_scrape.logs weeklyprocess.logs
+*.logs

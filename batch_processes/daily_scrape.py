@@ -113,6 +113,7 @@ def main():
 
     date = datetime.date(year, month, day)
 
+
     score_board = ScoreBoard(date)
     games = score_board.response()
 
