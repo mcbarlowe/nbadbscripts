@@ -8,6 +8,6 @@ cd $HOME/code/python/nbadbscripts
 $HOME/.virtualenvs/nbadb/bin/python -m batch_processes.daily_scrape --year $year --month $month --day $day
 
 echo "`date`[INFO] Building view of Player stats per game"
-psql $NBA_CONNECT -f bash_scripts/sql_scripts/per_game_stats.sql
-echo "`date`[INFO] Building view of Player stats per possession"
+/usr/local/bin/psql $NBA_CONNECT -f bash_scripts/sql_scripts/per_game_stats.sql
+/usr/local/bin/psql echo "`date`[INFO] Building view of Player stats per possession"
 psql $NBA_CONNECT -f bash_scripts/sql_scripts/per_poss_stats.sql
