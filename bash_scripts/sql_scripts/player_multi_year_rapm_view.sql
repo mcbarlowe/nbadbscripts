@@ -8,6 +8,6 @@ join nba.player_seasons pd
     and pd.min_season = pbg.min_season;
 
 
-create index rapm_multi_player on nba.player_single_rapm_view (player_id);
-create index rapm_multi_season on nba.player_single_rapm_view (min_season);
+create index rapm_multi_player on nba.player_multi_rapm_view (player_id);
+create index rapm_multi_season on nba.player_multi_rapm_view (min_season);
 

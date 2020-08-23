@@ -2,10 +2,11 @@ drop materialized view if exists nba.per_poss_stats;
 create materialized view nba.per_poss_stats as
 select pbg.player_id
     ,pd.position
+    ,pbg.player_name
     ,pbg.season
     ,string_agg(distinct pbg.team_abbrev, '/') teams
     ,count(*) gp
-    ,round(avg(pbg.toc::numeric / 60), 1) min
+    ,round(avg(pbg.toc::numeric / 60), 1) mins
     ,round(sum(pbg.fgm::numeric)/sum(pbg.possessions::numeric) * 100, 1) fgm
     ,round(sum(pbg.fga::numeric)/sum(pbg.possessions::numeric) * 100, 1) fga
     ,round(sum(pbg.tpm::numeric)/sum(pbg.possessions::numeric) * 100, 1) tpm
