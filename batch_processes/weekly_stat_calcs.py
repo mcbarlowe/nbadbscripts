@@ -25,7 +25,7 @@ def player_single_year_rapm_calc(season, engine):
     """
 
     print(f"calculating {season} season player rapm")
-    pbg_sql = f"select * from nba.player_rapm_shifts where season = {season}"
+    pbg_sql = f"select * from nba.player_rapm_shifts where season = {season} and (game_id >= 20000000 and game_id < 30000000)"
     rapm_df = pd.read_sql(pbg_sql, engine)
 
     pbg_rapm_results = npar.PlayerTotals.player_rapm_results(rapm_df)
@@ -57,7 +57,7 @@ def player_three_year_rapm_calc(min_season, max_season, engine):
     """
 
     print(f"calculating {min_season}-{max_season} player rapm")
-    pbg_sql = f"select * from nba.player_rapm_shifts where season between {min_season} and {max_season}"
+    pbg_sql = f"select * from nba.player_rapm_shifts where season between {min_season} and {max_season} and (game_id >= 20000000 and game_id < 30000000)"
     rapm_df = pd.read_sql(pbg_sql, engine)
 
     pbg_rapm_results = npar.PlayerTotals.player_rapm_results(rapm_df)
@@ -89,7 +89,7 @@ def team_rapm_calc(season, engine):
     """
 
     print(f"calculating {season} season team rapm")
-    tbg_sql = f"select * from nba.teambygamestats where season = {season}"
+    tbg_sql = f"select * from nba.teambygamestats where season = {season }and (game_id >= 20000000 and game_id < 30000000)"
     tbg_df = pd.read_sql(tbg_sql, engine)
 
     tbg_rapm = npar.TeamTotals([tbg_df])
@@ -108,7 +108,7 @@ def team_rapm_calc(season, engine):
 
 def player_advanced_stats_calc(season, engine):
     print(f"calculating {season} season player advanced stats")
-    pbg_sql = f"select * from nba.playerbygamestats where season in ({season})"
+    pbg_sql = f"select * from nba.playerbygamestats where season in ({season}) and (game_id >= 20000000 and game_id < 30000000)"
     pbg_df = pd.read_sql(pbg_sql, engine)
 
     player_totals = npar.PlayerTotals([pbg_df])
@@ -149,7 +149,7 @@ def player_advanced_stats_calc(season, engine):
 
 
 def team_advanced_stats_calc(season, engine):
-    tbg_sql = f"select * from nba.teambygamestats where season in ({season})"
+    tbg_sql = f"select * from nba.teambygamestats where season in ({season}) and (game_id >= 20000000 and game_id < 30000000)"
     tbg_df = pd.read_sql(tbg_sql, engine)
 
     team_totals = npar.TeamTotals([tbg_df])
@@ -203,10 +203,15 @@ def main():
 
     engine = create_engine(os.environ["NBA_CONNECT"])
 
+    logging.info("Calculating Team Advanced Stats")
     team_advanced_stats_calc(season, engine)
+    logging.info("Calculating Three Year Player Rapm")
     player_three_year_rapm_calc(season - 2, season, engine)
+    logging.info("Calculating Player Advanced Stats")
     player_advanced_stats_calc(season, engine)
+    logging.info("Calculating Single Year Player Rapm")
     player_single_year_rapm_calc(season, engine)
+    logging.info("Calculating Single Year Team Rapm")
     team_rapm_calc(season, engine)
 
 

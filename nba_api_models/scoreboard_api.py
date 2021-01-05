@@ -19,6 +19,8 @@ class ScoreBoard(BaseApi):
         res = requests.get(
             self.url, headers=self.user_agent, params=url_parameters
         ).json()
+        # TODO the scoreboard now has entry for each team/game combo rewrite
+        # TODO to only pull unique game ids
         games = res["resultSets"][0]["rowSet"]
         game_ids = [int(game[2][2:]) for game in games]
         return game_ids

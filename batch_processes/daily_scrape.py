@@ -6,6 +6,7 @@ current season in another script. This will use my nba_scraper, nba_parser, and 
 """
 
 import os
+import traceback
 import argparse
 import datetime
 import logging
@@ -99,6 +100,13 @@ def main():
     sql = """select distinct player_id from nba.player_details"""
     data = engine.connect().execute(sql)
     player_ids = [row.player_id for row in data]
+    print("player ids obtained")
+
+    # Get all game_ids  currently in database so i don't double scrape
+    sql = """select distinct game_id from nba.teambygamestats"""
+    data = engine.connect().execute(sql)
+    game_ids = [row.game_id for row in data]
+    print("game ids obtained")
 
     # parse arguments passed to script at command line
     parser = argparse.ArgumentParser()
@@ -113,25 +121,44 @@ def main():
 
     date = datetime.date(year, month, day)
 
-
     score_board = ScoreBoard(date)
     games = score_board.response()
+    games = set(games)
 
     if games == []:
         logging.info("No games on %s", date.strftime("%Y-%m-%d"))
         return
     # creates a list of play by play dataframes to process
     games_df_list = []
-    # TODO add code in here to filter out all star and playoff games or
-    # to add a gametype in the nba_parser 2020-04-06
     for game in games:
-        try:
-            games_df_list.append(ns.scrape_game([game]))
-            time.sleep(1)
-        except IndexError:
-            logging.error("Could not scrape game %s", game)
-        except KeyError:
-            logging.error("Could not scrape game %s", game)
+        if game not in game_ids:
+            try:
+                games_df_list.append(ns.scrape_game([game]))
+                time.sleep(1)
+            except IndexError as ex:
+                logging.error("Could not scrape game %s", game)
+                logging.error(
+                    "".join(traceback.TracebackException.from_exception(ex).format())
+                    == traceback.format_exc()
+                    == "".join(
+                        traceback.format_exception(type(ex), ex, ex.__traceback__)
+                    )
+                )
+                logging.error(
+                    "".join(traceback.TracebackException.from_exception(ex).format())
+                )
+            except KeyError as ex:
+                logging.error("Could not scrape game %s", game)
+                logging.error(
+                    "".join(traceback.TracebackException.from_exception(ex).format())
+                    == traceback.format_exc()
+                    == "".join(
+                        traceback.format_exception(type(ex), ex, ex.__traceback__)
+                    )
+                )
+                logging.error(
+                    "".join(traceback.TracebackException.from_exception(ex).format())
+                )
 
     pbps = list(map(npar.PbP, games_df_list))
 

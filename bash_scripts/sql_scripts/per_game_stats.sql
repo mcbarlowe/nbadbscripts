@@ -25,7 +25,7 @@ select
      ,round(avg(pbg.plus_minus), 1) plus_minus
 from nba.playerbygamestats pbg
 join nba.player_details pd on pd.player_id = pbg.player_id
-where toc > 0
+where toc > 0 and (game_id >= 20000000 and game_id < 30000000)
 group by
     pbg.player_id,
     pbg.season,

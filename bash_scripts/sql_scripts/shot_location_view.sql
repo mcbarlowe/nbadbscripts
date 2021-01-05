@@ -31,7 +31,7 @@ join
         sl.loc_x,
         sl.loc_y) lg_avg
     on lg_avg.lg_x = sls.loc_x and lg_avg.lg_y = sls.loc_y and tbg.season = lg_avg.season
-
+where (tbg.game_id >= 20000000 and tbg.game_id < 30000000)
 group by
     sls.player_id,
     sls.player_name,
