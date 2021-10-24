@@ -1,4 +1,5 @@
 import requests
+import time
 import pandas as pd
 from nba_api_models.base_api import BaseApi
 
@@ -48,9 +49,15 @@ class ShotDetails(BaseApi):
         method to get the response of the API endpoint
         """
         url_parameters = self.build_parameters_dict()
-        shots = requests.get(
-            self.url, headers=self.user_agent, params=url_parameters
-        ).json()
+        shots = requests.get(self.url, headers=self.user_agent, params=url_parameters)
+        wait = 1
+        while shots.status_code == 504:
+            shots = requests.get(
+                self.url, headers=self.user_agent, params=url_parameters
+            )
+            time.sleep(wait)
+            wait += 1
+        shots = shots.json()
         columns = shots["resultSets"][0]["headers"]
         rows = shots["resultSets"][0]["rowSet"]
         shots_df = pd.DataFrame(rows, columns=columns)

@@ -9,3 +9,4 @@ untitled1.ipynb
 *.pyc
 daily_scrape.logs weeklyprocess.logs
 *.logs
+error_file
